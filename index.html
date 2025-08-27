@@ -7,12 +7,13 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <!-- Loading screen -->
     <div id="loading">
         <p>Checking authentication... please wait.</p>
     </div>
 
-    <!-- Authentication screen -->
+    <!-- Authentication Form -->
     <div id="auth" style="display:none;">
         <h2>Sign Up or Log In</h2>
         <input type="email" id="email" placeholder="Email" required>
@@ -21,11 +22,10 @@
         <button id="login-button">Log In</button>
     </div>
 
-    <!-- Main app (starts hidden) -->
+    <!-- Main App -->
     <div id="app" style="display:none;">
-        <h1>Parental Vitals Tracker</h1>
         <button id="logout-button">Log Out</button>
-
+        <h1>Parental Vitals Tracker</h1>
         <p>Please enter the latest vital signs below.</p>
         <form id="vitals-form">
             <div class="form-group">
@@ -66,9 +66,16 @@
         </div>
     </div>
 
-    <!-- External libraries -->
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+
+    <!-- Other libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Your main JS -->
     <script src="script.js"></script>
 </body>
 </html>
