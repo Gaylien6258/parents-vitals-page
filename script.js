@@ -53,6 +53,39 @@ async function displayVitalSigns() {
     });
 }
 
+// Sign up a new user
+async function signup(email, password) {
+    const auth = getAuth();
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Signed in 
+        const user = userCredential.user;
+        console.log("User signed up successfully: ", user.uid);
+        alert("Sign up successful! You can now log in.");
+    } catch (error) {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.error("Sign up failed: ", errorMessage);
+        alert("Sign up failed: " + errorMessage);
+    }
+}
+
+// Log in an existing user
+async function login(email, password) {
+    const auth = getAuth();
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // Signed in 
+        const user = userCredential.user;
+        console.log("User logged in successfully: ", user.uid);
+        alert("Login successful! You can now add readings.");
+    } catch (error) {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.error("Login failed: ", errorMessage);
+        alert("Login failed: " + errorMessage);
+    }
+}
 // Event listener for form submission
 document.getElementById('vitals-form').addEventListener('submit', function(event) {
     event.preventDefault();
