@@ -1,5 +1,4 @@
 // ---------- Firebase Initialization ----------
-
 const firebaseConfig = {
     apiKey: "AIzaSyDWKz6O-5xir46vivUPBAse_vMSaXWKamU",
     authDomain: "parents-vitals-data.firebaseapp.com",
@@ -9,13 +8,11 @@ const firebaseConfig = {
     appId: "1:34332288387:web:ea67be6bb564e8f402c2b6"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
 // ---------- Firestore Functions ----------
-
 async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
     try {
         await db.collection("vitals").add({
@@ -50,7 +47,6 @@ async function displayVitalSigns() {
 }
 
 // ---------- Chart.js Setup ----------
-
 let vitalsChart;
 
 function renderChart(vitals) {
@@ -86,70 +82,5 @@ function renderChart(vitals) {
 }
 
 // ---------- Authentication Functions ----------
-
 function signup(email, password) {
-    auth.createUserWithEmailAndPassword(email, password)
-        .then(userCredential => console.log("Signed up:", userCredential.user.uid))
-        .catch(error => alert("Sign up failed: " + error.message));
-}
-
-function login(email, password) {
-    auth.signInWithEmailAndPassword(email, password)
-        .then(userCredential => console.log("Logged in:", userCredential.user.uid))
-        .catch(error => alert("Login failed: " + error.message));
-}
-
-function logout() {
-    auth.signOut()
-        .then(() => console.log("User logged out"))
-        .catch(error => console.error("Logout failed:", error));
-}
-
-// ---------- Event Listeners ----------
-
-document.getElementById('signup-button').addEventListener('click', () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    signup(email, password);
-});
-
-document.getElementById('login-button').addEventListener('click', () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    login(email, password);
-});
-
-document.getElementById('logout-button').addEventListener('click', logout);
-
-document.getElementById('vitals-form').addEventListener('submit', e => {
-    e.preventDefault();
-    const patient = document.getElementById('patient-select').value;
-    const systolic = document.getElementById('systolic').value;
-    const diastolic = document.getElementById('diastolic').value;
-    const heartrate = document.getElementById('heartrate').value;
-    const oxygen = document.getElementById('oxygen').value;
-
-    addVitalSigns(patient, systolic, diastolic, heartrate, oxygen);
-    displayVitalSigns();
-
-    document.getElementById('vitals-form').reset();
-});
-
-// ---------- Auth State Listener ----------
-
-auth.onAuthStateChanged(user => {
-    const authDiv = document.getElementById('auth');
-    const appDiv = document.getElementById('app');
-    const loadingDiv = document.getElementById('loading');
-
-    loadingDiv.style.display = "none";
-
-    if(user){
-        authDiv.style.display = "none";
-        appDiv.style.display = "block";
-        displayVitalSigns();
-    } else {
-        authDiv.style.display = "block";
-        appDiv.style.display = "none";
-    }
-});
+    auth.create
