@@ -1,9 +1,15 @@
-// Import the functions you need from the SDKs you need
+// Import Firebase SDK functions
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, getDocs } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    onAuthStateChanged, 
+    signOut 
+} from "firebase/auth";
 
-// Your web app's Firebase configuration
+// Your Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDWKz6O-5xir46vivUPBAse_vMSaXWKamU",
     authDomain: "parents-vitals-data.firebaseapp.com",
@@ -18,7 +24,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Add vital signs to Firestore
+// ---------- Firestore Functions ----------
+
+// Add vital signs
 async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
     try {
         const docRef = await addDoc(collection(db, "vitals"), {
@@ -45,7 +53,7 @@ async function displayVitalSigns() {
         vitals.push(doc.data());
     });
 
-    vitals.sort((a, b) => b.timestamp - a.timestamp);
+    vitals.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     vitals.forEach(vital => {
         const li = document.createElement('li');
@@ -54,33 +62,43 @@ async function displayVitalSigns() {
     });
 }
 
-// Sign up a new user
+// ---------- Authentication Functions ----------
+
+// Sign up
 async function signup(email, password) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        console.log("User signed up successfully: ", user.uid);
+        console.log("User signed up successfully: ", userCredential.user.uid);
     } catch (error) {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error("Sign up failed: ", errorMessage);
+        console.error("Sign up failed: ", error.message);
+        alert("Sign up failed: " + error.message);
     }
 }
 
-// Log in an existing user
+// Log in
 async function login(email, password) {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        console.log("User logged in successfully: ", user.uid);
+        console.log("User logged in successfully: ", userCredential.user.uid);
     } catch (error) {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error("Login failed: ", errorMessage);
+        console.error("Login failed: ", error.message);
+        alert("Login failed: " + error.message);
     }
 }
 
-// Event listener for form submission
+// Log out
+async function logout() {
+    try {
+        await signOut(auth);
+        console.log("User logged out.");
+    } catch (error) {
+        console.error("Logout failed: ", error.message);
+    }
+}
+
+// ---------- Event Listeners ----------
+
+// Vitals form submit
 document.getElementById('vitals-form').addEventListener('submit', function(event) {
     event.preventDefault();
     const patient = document.getElementById('patient-select').value;
@@ -92,36 +110,49 @@ document.getElementById('vitals-form').addEventListener('submit', function(event
     addVitalSigns(patient, systolic, diastolic, heartrate, oxygen);
     displayVitalSigns();
 
-    // Clear form fields
+    // Clear form
     document.getElementById('vitals-form').reset();
 });
 
-// Event listener for sign up button
+// Sign up button
 document.getElementById('signup-button').addEventListener('click', function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     signup(email, password);
 });
 
-// Event listener for login button
+// Login button
 document.getElementById('login-button').addEventListener('click', function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     login(email, password);
 });
 
-// Initial display of data and authentication state listener
+// Logout button
+document.getElementById('logout-button').addEventListener('click', function() {
+    logout();
+});
+
+// ---------- Authentication State Listener ----------
+
 onAuthStateChanged(auth, (user) => {
+    const authDiv = document.getElementById('auth');
+    const appDiv = document.getElementById('app');
+    const loadingDiv = document.getElementById('loading');
+
+    // Hide loading once Firebase answers
+    loadingDiv.style.display = "none";
+
     if (user) {
-        // User is signed in, show the app
-        document.getElementById('auth').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
+        // Logged in
+        authDiv.style.display = 'none';
+        appDiv.style.display = 'block';
         console.log("User is logged in:", user.uid);
         displayVitalSigns();
     } else {
-        // User is signed out, show the auth form
-        document.getElementById('auth').style.display = 'block';
-        document.getElementById('app').style.display = 'none';
+        // Logged out
+        authDiv.style.display = 'block';
+        appDiv.style.display = 'none';
         console.log("User is logged out");
     }
 });
