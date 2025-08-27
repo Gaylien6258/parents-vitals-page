@@ -103,4 +103,17 @@ document.getElementById('vitals-form').addEventListener('submit', function(event
 });
 
 // Initial display of data
+// Event listener for sign up button
+document.getElementById('signup-button').addEventListener('click', function() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    signup(email, password);
+});
+
+// Event listener for login button
+document.getElementById('login-button').addEventListener('click', function() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    login(email, password);
+});
 displayVitalSigns();
