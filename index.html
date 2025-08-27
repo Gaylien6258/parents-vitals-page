@@ -1,84 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parental Vitals Tracker</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "firebase/app";
-        // TODO: Add SDKs for Firebase products that you want to use
-        // https://firebase.google.com/docs/web/setup#available-libraries
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDWKz6O-5xir46vivUPBAse_vMSaXWKamU",
-            authDomain: "parents-vitals-data.firebaseapp.com",
-            projectId: "parents-vitals-data",
-            storageBucket: "parents-vitals-data.firebasestorage.app",
-            messagingSenderId: "34332288387",
-            appId: "1:34332288387:web:ea67be6bb564e8f402c2b6"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-    </script>
-</head>
 <body>
+    <div id="auth">
+        <h2>Sign Up or Log In</h2>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button id="signup-button">Sign Up</button>
+        <button id="login-button">Log In</button>
+    </div>
+
     <div id="app">
-        <div id="auth">
-    <h2>Sign Up or Log In</h2>
-    <input type="email" id="email" placeholder="Email" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button id="signup-button">Sign Up</button>
-    <button id="login-button">Log In</button>
-</div>
         <h1>Parental Vitals Tracker</h1>
         <p>Please enter the latest vital signs below.</p>
         <form id="vitals-form">
-    <div class="form-group">
-        <label for="patient-select">Patient:</label>
-        <select id="patient-select">
-            <option value="mother">Mother</option>
-            <option value="father">Father</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="systolic">Systolic Pressure (mmHg):</label>
-        <input type="number" id="systolic" required>
-    </div>
-    <div class="form-group">
-        <label for="diastolic">Diastolic Pressure (mmHg):</label>
-        <input type="number" id="diastolic" required>
-    </div>
-    <div class="form-group">
-        <label for="heartrate">Heart Rate (BPM):</label>
-        <input type="number" id="heartrate" required>
-    </div>
-    <div class="form-group">
-        <label for="oxygen">Oxygen Saturation (%):</label>
-        <input type="number" id="oxygen" required>
-    </div>
-    <button type="submit">Add Reading</button>
-</form>
-
+            <div class="form-group">
+                <label for="patient-select">Patient:</label>
+                <select id="patient-select">
+                    <option value="mother">Mother</option>
+                    <option value="father">Father</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="systolic">Systolic Pressure (mmHg):</label>
+                <input type="number" id="systolic" required>
+            </div>
+            <div class="form-group">
+                <label for="diastolic">Diastolic Pressure (mmHg):</label>
+                <input type="number" id="diastolic" required>
+            </div>
+            <div class="form-group">
+                <label for="heartrate">Heart Rate (BPM):</label>
+                <input type="number" id="heartrate" required>
+            </div>
+            <div class="form-group">
+                <label for="oxygen">Oxygen Saturation (%):</label>
+                <input type="number" id="oxygen" required>
+            </div>
+            <button type="submit">Add Reading</button>
+        </form>
         <div id="data-display">
             <h2>Recent Readings</h2>
             <ul id="vitals-list">
-                </ul>
+            </ul>
         </div>
-
         <div id="chart-container">
             <h2>Vitals Over Time</h2>
             <canvas id="vitals-chart"></canvas>
-        <button id="download-pdf">Download PDF Report</button>
+            <button id="download-pdf">Download PDF Report</button>
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
-</html>
