@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, getDocs } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -56,37 +56,30 @@ async function displayVitalSigns() {
 
 // Sign up a new user
 async function signup(email, password) {
-    const auth = getAuth();
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Signed in 
         const user = userCredential.user;
         console.log("User signed up successfully: ", user.uid);
-        alert("Sign up successful! You can now log in.");
     } catch (error) {
         const errorCode = error.code;
         const errorMessage = error.message;
         console.error("Sign up failed: ", errorMessage);
-        alert("Sign up failed: " + errorMessage);
     }
 }
 
 // Log in an existing user
 async function login(email, password) {
-    const auth = getAuth();
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        // Signed in 
         const user = userCredential.user;
         console.log("User logged in successfully: ", user.uid);
-        alert("Login successful! You can now add readings.");
     } catch (error) {
         const errorCode = error.code;
         const errorMessage = error.message;
         console.error("Login failed: ", errorMessage);
-        alert("Login failed: " + errorMessage);
     }
 }
+
 // Event listener for form submission
 document.getElementById('vitals-form').addEventListener('submit', function(event) {
     event.preventDefault();
@@ -103,7 +96,6 @@ document.getElementById('vitals-form').addEventListener('submit', function(event
     document.getElementById('vitals-form').reset();
 });
 
-// Initial display of data
 // Event listener for sign up button
 document.getElementById('signup-button').addEventListener('click', function() {
     const email = document.getElementById('email').value;
@@ -117,4 +109,19 @@ document.getElementById('login-button').addEventListener('click', function() {
     const password = document.getElementById('password').value;
     login(email, password);
 });
-displayVitalSigns();
+
+// Initial display of data and authentication state listener
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // User is signed in, show the app
+        document.getElementById('auth').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        console.log("User is logged in:", user.uid);
+        displayVitalSigns();
+    } else {
+        // User is signed out, show the auth form
+        document.getElementById('auth').style.display = 'block';
+        document.getElementById('app').style.display = 'none';
+        console.log("User is logged out");
+    }
+});
