@@ -1,5 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parental Vitals Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
-    <div id="auth">
+    <!-- Loading screen -->
+    <div id="loading">
+        <p>Checking authentication... please wait.</p>
+    </div>
+
+    <!-- Authentication screen -->
+    <div id="auth" style="display:none;">
         <h2>Sign Up or Log In</h2>
         <input type="email" id="email" placeholder="Email" required>
         <input type="password" id="password" placeholder="Password" required>
@@ -7,8 +21,11 @@
         <button id="login-button">Log In</button>
     </div>
 
-    <div id="app">
+    <!-- Main app (starts hidden) -->
+    <div id="app" style="display:none;">
         <h1>Parental Vitals Tracker</h1>
+        <button id="logout-button">Log Out</button>
+
         <p>Please enter the latest vital signs below.</p>
         <form id="vitals-form">
             <div class="form-group">
@@ -36,18 +53,22 @@
             </div>
             <button type="submit">Add Reading</button>
         </form>
+
         <div id="data-display">
             <h2>Recent Readings</h2>
-            <ul id="vitals-list">
-            </ul>
+            <ul id="vitals-list"></ul>
         </div>
+
         <div id="chart-container">
             <h2>Vitals Over Time</h2>
             <canvas id="vitals-chart"></canvas>
             <button id="download-pdf">Download PDF Report</button>
         </div>
     </div>
+
+    <!-- External libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
+</html>
