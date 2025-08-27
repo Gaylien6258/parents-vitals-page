@@ -1,174 +1,73 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('vitals-form');
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, addDoc, getDocs } from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDWKz6O-5xir46vivUPBAse_vMSaXWKamU",
+    authDomain: "parents-vitals-data.firebaseapp.com",
+    projectId: "parents-vitals-data",
+    storageBucket: "parents-vitals-data.firebasestorage.app",
+    messagingSenderId: "34332288387",
+    appId: "1:34332288387:web:ea67be6bb564e8f402c2b6"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Add vital signs to Firestore
+async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
+    try {
+        const docRef = await addDoc(collection(db, "vitals"), {
+            patient_name: patient,
+            systolic: systolic,
+            diastolic: diastolic,
+            heart_rate: heartrate,
+            oxygen_saturation: oxygen,
+            timestamp: new Date()
+        });
+        console.log("Document written with ID: ", docRef.id);
+    } catch (e) {
+        console.error("Error adding document: ", e);
+    }
+}
+
+// Display recent vital signs
+async function displayVitalSigns() {
     const vitalsList = document.getElementById('vitals-list');
-    const patientSelect = document.getElementById('patient-select');
-    const downloadPdfButton = document.getElementById('download-pdf');
-
-    let vitalsChart;
-    const patientNames = { mother: 'Susan', father: 'Gary' };
-
-    const getPatientData = (patient) => {
-        return JSON.parse(localStorage.getItem(`vitalsReadings-${patient}`)) || [];
-    };
-
-    const savePatientData = (patient, data) => {
-        localStorage.setItem(`vitalsReadings-${patient}`, JSON.stringify(data));
-    };
-
-    const renderReadings = (patient) => {
-        const readings = getPatientData(patient);
-        vitalsList.innerHTML = '';
-        if (readings.length === 0) {
-            vitalsList.innerHTML = '<p style="text-align:center;">No readings yet.</p>';
-            return;
-        }
-        readings.forEach((reading, index) => {
-            const listItem = document.createElement('li');
-            listItem.innerHTML = `
-                <strong>Date:</strong> ${reading.date} <strong>Time:</strong> ${reading.time}<br>
-                <strong>BP:</strong> ${reading.systolic}/${reading.diastolic} mmHg<br>
-                <strong>HR:</strong> ${reading.heartrate} BPM<br>
-                <strong>O2:</strong> ${reading.oxygen} %
-            `;
-            vitalsList.appendChild(listItem);
-        });
-    };
-
-    const renderChart = (patient) => {
-        const readings = getPatientData(patient);
-        const dates = readings.map(r => r.date).reverse();
-        const systolic = readings.map(r => parseInt(r.systolic)).reverse();
-        const diastolic = readings.map(r => parseInt(r.diastolic)).reverse();
-        const heartrate = readings.map(r => parseInt(r.heartrate)).reverse();
-        const oxygen = readings.map(r => parseInt(r.oxygen)).reverse();
-
-        const ctx = document.getElementById('vitals-chart').getContext('2d');
-
-        if (vitalsChart) {
-            vitalsChart.destroy();
-        }
-
-        vitalsChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: 'Systolic Pressure (mmHg)',
-                    data: systolic,
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    tension: 0.1
-                }, {
-                    label: 'Diastolic Pressure (mmHg)',
-                    data: diastolic,
-                    borderColor: 'rgb(54, 162, 235)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    tension: 0.1
-                }, {
-                    label: 'Heart Rate (BPM)',
-                    data: heartrate,
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1
-                }, {
-                    label: 'Oxygen Saturation (%)',
-                    data: oxygen,
-                    borderColor: 'rgb(255, 206, 86)',
-                    backgroundColor: 'rgba(255, 206, 86, 0.2)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    };
-
-    const generatePdfReport = (patient) => {
-        const readings = getPatientData(patient);
-        const name = patientNames[patient];
-
-        if (readings.length === 0) {
-            alert(`No readings available for ${name}.`);
-            return;
-        }
-
-        const doc = new window.jspdf.jsPDF();
-
-        doc.setFontSize(22);
-        doc.text(`Vitals Report for ${name}`, 10, 20);
-        doc.setFontSize(12);
-        doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 10, 30);
-
-        // Add chart image
-        const chartDataUrl = document.getElementById('vitals-chart').toDataURL('image/png');
-        doc.addImage(chartDataUrl, 'PNG', 10, 40, 180, 100);
-
-        doc.text('Recent Readings:', 10, 150);
-        let yPos = 160;
-        readings.forEach((reading, index) => {
-            if (yPos > 280) {
-                doc.addPage();
-                yPos = 20;
-            }
-            doc.text(`${reading.date} ${reading.time} - BP: ${reading.systolic}/${reading.diastolic}, HR: ${reading.heartrate}, O2: ${reading.oxygen}`, 10, yPos);
-            yPos += 10;
-        });
-
-        doc.save(`Vitals_Report_${name}_${new Date().toLocaleDateString()}.pdf`);
-    };
-
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();
-
-        const patient = patientSelect.value;
-        const systolic = document.getElementById('systolic').value;
-        const diastolic = document.getElementById('diastolic').value;
-        const heartrate = document.getElementById('heartrate').value;
-        const oxygen = document.getElementById('oxygen').value;
-
-        const now = new Date();
-        const date = now.toLocaleDateString();
-        const time = now.toLocaleTimeString();
-
-        const newReading = {
-            date,
-            time,
-            systolic,
-            diastolic,
-            heartrate,
-            oxygen
-        };
-
-        const readings = getPatientData(patient);
-        readings.unshift(newReading);
-        savePatientData(patient, readings);
-
-        document.getElementById('systolic').value = '';
-        document.getElementById('diastolic').value = '';
-        document.getElementById('heartrate').value = '';
-        document.getElementById('oxygen').value = '';
-
-        renderReadings(patient);
-        renderChart(patient);
+    vitalsList.innerHTML = '';
+    const vitals = [];
+    const querySnapshot = await getDocs(collection(db, "vitals"));
+    querySnapshot.forEach((doc) => {
+        vitals.push(doc.data());
     });
 
-    patientSelect.addEventListener('change', (event) => {
-        renderReadings(event.target.value);
-        renderChart(event.target.value);
-    });
+    vitals.sort((a, b) => b.timestamp - a.timestamp);
 
-    downloadPdfButton.addEventListener('click', () => {
-        const patient = patientSelect.value;
-        generatePdfReport(patient);
+    vitals.forEach(vital => {
+        const li = document.createElement('li');
+        li.textContent = `Patient: ${vital.patient_name}, Systolic: ${vital.systolic}, Diastolic: ${vital.diastolic}, Heart Rate: ${vital.heart_rate}, Oxygen: ${vital.oxygen_saturation}`;
+        vitalsList.appendChild(li);
     });
+}
 
-    // Initial render based on default selection
-    renderReadings(patientSelect.value);
-    renderChart(patientSelect.value);
+// Event listener for form submission
+document.getElementById('vitals-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const patient = document.getElementById('patient-select').value;
+    const systolic = document.getElementById('systolic').value;
+    const diastolic = document.getElementById('diastolic').value;
+    const heartrate = document.getElementById('heartrate').value;
+    const oxygen = document.getElementById('oxygen').value;
+
+    addVitalSigns(patient, systolic, diastolic, heartrate, oxygen);
+    displayVitalSigns();
+
+    // Clear form fields
+    document.getElementById('vitals-form').reset();
 });
+
+// Initial display of data
+displayVitalSigns();
