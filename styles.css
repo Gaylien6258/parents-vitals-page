@@ -74,3 +74,6 @@ button:hover {
     list-style-type: none;
     padding: 0;
 }
+#auth button {
+    margin-right: 10px;
+}
