@@ -36,6 +36,9 @@ p {
 
 label {
     display: block;
+#app {
+    display: none;
+}
     font-weight: bold;
     margin-bottom: 0.5rem;
 }
