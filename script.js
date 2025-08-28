@@ -82,11 +82,21 @@ async function displayVitalSigns() {
     vitalsList.innerHTML = '';
     const vitals = [];
     const querySnapshot = await db.collection("vitals").orderBy("timestamp", "desc").get();
-    querySnapshot.forEach(doc => vitals.push(doc.data()));
-
-    vitals.forEach(vital => {
+    
+    querySnapshot.forEach(doc => {
+        const data = doc.data();
+        vitals.push(data); 
+        
         const li = document.createElement('li');
-        li.textContent = `Patient: ${vital.patient_name}, Systolic: ${vital.systolic}, Diastolic: ${vital.diastolic}, Heart Rate: ${vital.heart_rate}, Oxygen: ${vital.oxygen_saturation}`;
+        li.textContent = `Patient: ${data.patient_name}, Systolic: ${data.systolic}, Diastolic: ${data.diastolic}, Heart Rate: ${data.heart_rate}, Oxygen: ${data.oxygen_saturation}`;
+        
+        // Create a delete button
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.classList.add('delete-btn');
+        deleteButton.setAttribute('data-id', doc.id);
+        
+        li.appendChild(deleteButton);
         vitalsList.appendChild(li);
     });
 
