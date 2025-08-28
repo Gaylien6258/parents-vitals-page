@@ -39,9 +39,6 @@ const confirmMessage = document.getElementById('confirm-message');
 const confirmYesBtn = document.getElementById('confirm-yes-btn');
 const confirmNoBtn = document.getElementById('confirm-no-btn');
 
-// New DOM element for the patient filter dropdown
-const filterPatientSelect = document.getElementById('filter-patient-select');
-
 let docIdToDelete = null;
 let currentUserId = null; // Variable to store the current user's UID
 
@@ -77,7 +74,7 @@ async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
         });
         console.log("Vitals added for", patient);
         // After adding, refresh the display for the patient currently being viewed
-        displayVitalSigns(filterPatientSelect.value);
+        displayVitalSigns(patientSelect.value);
     } catch (e) {
         console.error("Error adding vitals:", e);
     }
@@ -93,7 +90,7 @@ async function deleteVitalSign(docId) {
         await db.collection("users").doc(currentUserId).collection("vitals").doc(docId).delete();
         console.log("Document successfully deleted!");
         // After deleting, refresh the display for the patient currently being viewed
-        displayVitalSigns(filterPatientSelect.value); 
+        displayVitalSigns(patientSelect.value); 
     } catch (error) {
         console.error("Error removing document: ", error);
     }
@@ -221,8 +218,8 @@ confirmNoBtn.addEventListener('click', () => {
     docIdToDelete = null;
 });
 
-// Event listener for the new filter dropdown
-filterPatientSelect.addEventListener('change', (e) => {
+// Event listener to automatically refresh display when patient selection changes
+patientSelect.addEventListener('change', (e) => {
     displayVitalSigns(e.target.value);
 });
 
@@ -236,7 +233,7 @@ auth.onAuthStateChanged(user => {
         authDiv.style.display = "none";
         appDiv.style.display = "block";
         // Display vitals for the initially selected patient
-        displayVitalSigns(filterPatientSelect.value);
+        displayVitalSigns(patientSelect.value);
     } else {
         currentUserId = null;
         authDiv.style.display = "block";
