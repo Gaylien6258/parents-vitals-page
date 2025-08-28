@@ -1,6 +1,5 @@
-/* Custom CSS for the Parental Vitals App */
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Roboto', sans-serif;
     background-color: #f3f4f6;
     margin: 0;
     padding: 0;
@@ -17,10 +16,6 @@ body {
     box-sizing: border-box;
 }
 
-#auth {
-    background-color: #fff;
-}
-
 .auth-card {
     background: #fff;
     padding: 2.5rem;
@@ -31,65 +26,13 @@ body {
     text-align: center;
 }
 
-.auth-card .input-group {
-    margin-bottom: 1rem;
-}
-
-.auth-card .input-group label {
-    display: block;
-    text-align: left;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-}
-
-.auth-card .input-group input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    box-sizing: border-box;
-}
-
-.auth-card .auth-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1.5rem;
-}
-
-.auth-card .auth-actions button {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background-color 0.2s;
-}
-
-.auth-card .auth-actions #login-button, .auth-card .auth-actions #signup-button {
-    background-color: #4f46e5;
-    color: #fff;
-    flex-grow: 1;
-}
-
-.auth-card .auth-actions #login-button:hover, .auth-card .auth-actions #signup-button:hover {
-    background-color: #4338ca;
-}
-
-.auth-card .divider {
-    color: #9ca3af;
-    margin: 1.5rem 0;
-    font-size: 0.875rem;
-}
-
 .google-btn {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
-    max-width: 250px; /* New rule: Limit the button's maximum width */
-    margin: 0 auto; /* New rule: Center the button */
+    max-width: 250px;
+    margin: 0 auto;
     padding: 0.75rem 1.5rem;
     border: 1px solid #d1d5db;
     border-radius: 0.5rem;
@@ -101,22 +44,6 @@ body {
 
 .google-btn:hover {
     background-color: #f9fafb;
-}
-
-.google-btn img {
-    height: 1.25rem;
-    width: 1.25rem;
-    margin-right: 0.5rem;
-}
-
-/* Main App Styles */
-#app {
-    display: none;
-    background-color: #f3f4f6;
-    padding: 2rem;
-    max-width: 1200px;
-    width: 100%;
-    box-sizing: border-box;
 }
 
 .header {
@@ -148,6 +75,8 @@ body {
     display: grid;
     grid-template-columns: 1fr;
     gap: 2rem;
+    max-width: 1200px;
+    width: 100%;
 }
 
 @media (min-width: 768px) {
@@ -163,18 +92,18 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.data-entry-card .input-group {
+.input-group {
     margin-bottom: 1rem;
 }
 
-.data-entry-card .input-group label {
+.input-group label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 600;
 }
 
-.data-entry-card .input-group input,
-.data-entry-card .input-group select {
+.input-group input,
+.input-group select {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #d1d5db;
@@ -217,15 +146,30 @@ body {
     align-items: center;
 }
 
-.delete-btn {
-    background-color: #fef2f2;
-    color: #dc2626;
-    border: 1px solid #dc2626;
+.edit-btn, .delete-btn {
     padding: 0.25rem 0.75rem;
     border-radius: 0.5rem;
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s;
+}
+
+.edit-btn {
+    background-color: #dbeafe;
+    color: #2563eb;
+    border: 1px solid #2563eb;
+    margin-right: 0.5rem;
+}
+
+.edit-btn:hover {
+    background-color: #2563eb;
+    color: #fff;
+}
+
+.delete-btn {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #dc2626;
 }
 
 .delete-btn:hover {
@@ -258,17 +202,16 @@ body {
     background-color: #2563eb;
 }
 
-/* Custom Modal Styles */
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1000; /* Sit on top */
+    display: none;
+    position: fixed;
+    z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
     justify-content: center;
     align-items: center;
 }
@@ -277,12 +220,12 @@ body {
     background-color: #fefefe;
     padding: 2.5rem;
     border-radius: 1rem;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     max-width: 400px;
     text-align: center;
 }
 
-.modal-actions {
+.modal-buttons {
     display: flex;
     justify-content: space-around;
     margin-top: 2rem;
@@ -293,8 +236,7 @@ body {
     border: none;
     border-radius: 0.5rem;
     cursor: pointer;
-    font-weight: bold;
-    font-size: 1rem;
+    font-weight: 600;
 }
 
 .modal-btn.yes {
