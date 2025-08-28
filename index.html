@@ -230,11 +230,23 @@
         #confirm-yes-btn { background-color: #e53e3e; color: white; }
         #confirm-no-btn { background-color: #cbd5e0; }
 
+        #pdf-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
 
     <div id="loading">Loading...</div>
+    <div id="pdf-loading">Generating PDF...</div>
 
     <div class="container" id="auth">
         <h2>Please sign in</h2>
@@ -325,6 +337,7 @@
         const loadingDiv = document.getElementById('loading');
         const authDiv = document.getElementById('auth');
         const appDiv = document.getElementById('app');
+        const pdfLoadingDiv = document.getElementById('pdf-loading');
 
         const vitalsForm = document.getElementById('vitals-form');
         const patientSelect = document.getElementById('patient-select');
@@ -381,18 +394,21 @@
                 return;
             }
             try {
+                const timestamp = timestampInput.value ? new Date(timestampInput.value) : new Date();
                 await db.collection("users").doc(currentUserId).collection("vitals").add({
                     patient_name: patient,
                     systolic: parseInt(systolic),
                     diastolic: parseInt(diastolic),
                     heart_rate: parseInt(heartrate),
                     oxygen_saturation: parseInt(oxygen),
-                    timestamp: new Date()
+                    timestamp: firebase.firestore.Timestamp.fromDate(timestamp)
                 });
                 console.log("Vitals added for", patient);
-                displayVitalSigns(patientSelect.value);
             } catch (e) {
                 console.error("Error adding vitals:", e);
+            } finally {
+                displayVitalSigns(patientSelect.value);
+                resetForm();
             }
         }
 
@@ -411,7 +427,7 @@
                     oxygen_saturation: parseInt(oxygen),
                 };
                 if (timestamp) {
-                    updateData.timestamp = new Date(timestamp);
+                    updateData.timestamp = firebase.firestore.Timestamp.fromDate(new Date(timestamp));
                 }
                 
                 await docRef.update(updateData);
@@ -433,9 +449,10 @@
             try {
                 await db.collection("users").doc(currentUserId).collection("vitals").doc(docId).delete();
                 console.log("Document successfully deleted!");
-                displayVitalSigns(patientSelect.value); 
             } catch (error) {
                 console.error("Error removing document: ", error);
+            } finally {
+                displayVitalSigns(patientSelect.value); 
             }
         }
 
@@ -451,7 +468,6 @@
             try {
                 let vitalsQuery = db.collection("users").doc(currentUserId).collection("vitals");
 
-                // If a patient is selected, add a filter to the query
                 if (patientToFilter) {
                     vitalsQuery = vitalsQuery.where("patient_name", "==", patientToFilter);
                 }
@@ -463,7 +479,7 @@
                     vitals.push({ id: doc.id, ...data }); 
                     
                     const li = document.createElement('li');
-                    const timestamp = data.timestamp.seconds ? new Date(data.timestamp.seconds * 1000) : new Date(data.timestamp);
+                    const timestamp = data.timestamp ? data.timestamp.toDate() : new Date();
                     li.textContent = `Patient: ${data.patient_name}, Systolic: ${data.systolic}, Diastolic: ${data.diastolic}, Heart Rate: ${data.heart_rate}, Oxygen: ${data.oxygen_saturation} - ${timestamp.toLocaleString()}`;
                     
                     const editButton = document.createElement('button');
@@ -495,7 +511,7 @@
             heartrateInput.value = data.heart_rate;
             oxygenInput.value = data.oxygen_saturation;
             
-            const timestamp = data.timestamp.seconds ? new Date(data.timestamp.seconds * 1000) : new Date(data.timestamp);
+            const timestamp = data.timestamp ? data.timestamp.toDate() : new Date();
             const localDateTime = new Date(timestamp.getTime() - timestamp.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
             timestampInput.value = localDateTime;
 
@@ -504,23 +520,26 @@
             cancelEditBtn.style.display = 'inline-block';
         }
 
-        // Helper function to reset the form to add mode
+        // Helper function to reset the form to add mode and auto-populate timestamp
         function resetForm() {
             vitalsForm.reset();
             submitBtn.style.display = 'inline-block';
             updateBtn.style.display = 'none';
             cancelEditBtn.style.display = 'none';
             docIdToEdit = null;
-            timestampInput.value = '';
+            
+            // Auto-populate current date and time
+            const now = new Date();
+            const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            timestampInput.value = localDateTime;
         }
 
         // ---------- Chart.js ----------
         let vitalsChart = null;
         function updateChart(vitals) {
-            // Sort vitals by timestamp in ascending order for the chart
             vitals.sort((a, b) => (a.timestamp.seconds || a.timestamp) - (b.timestamp.seconds || b.timestamp));
             
-            const labels = vitals.map(v => new Date((v.timestamp.seconds || v.timestamp) * 1000).toLocaleString());
+            const labels = vitals.map(v => (v.timestamp ? v.timestamp.toDate() : new Date()).toLocaleString());
             const systolicData = vitals.map(v => v.systolic);
             const diastolicData = vitals.map(v => v.diastolic);
             const heartRateData = vitals.map(v => v.heart_rate);
@@ -557,28 +576,40 @@
                     data: data,
                     options: {
                         ...options,
-                        animation: {
-                            onComplete: () => {
-                                const dataURL = tempCanvas.toDataURL('image/png');
-                                tempChart.destroy();
-                                resolve(dataURL);
-                            },
-                            onProgress: () => {}
-                        }
+                        animation: false // No animation for PDF charts
                     }
                 });
+
+                // Wait for the chart to be fully rendered before getting the image
+                setTimeout(() => {
+                    const dataURL = tempCanvas.toDataURL('image/png');
+                    tempChart.destroy();
+                    resolve(dataURL);
+                }, 500); // Small delay to ensure rendering is complete
             });
         };
 
 
         // ---------- PDF Export ----------
         downloadPdfButton.addEventListener('click', async () => {
+            pdfLoadingDiv.style.display = 'block';
+            downloadPdfButton.disabled = true;
+
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
                 const patientName = patientNames[patientSelect.value];
                 const reportDate = new Date().toLocaleDateString();
+                
+                const vitalsData = await getVitalsData();
+                if (vitalsData.length === 0) {
+                    doc.setFontSize(12);
+                    doc.text("No data available to generate charts.", 10, 40);
+                    doc.save(`vitals_report_${patientName}.pdf`);
+                    alert("No vital sign data found for this patient. PDF report will be empty.");
+                    return;
+                }
 
                 // Cover Page
                 doc.setFontSize(30);
@@ -607,17 +638,9 @@
                 doc.setFontSize(20);
                 doc.text("Vital Signs Over Time", 10, 20);
                 
-                const vitalsData = await getVitalsData();
-                if (vitalsData.length === 0) {
-                    doc.setFontSize(12);
-                    doc.text("No data available to generate charts.", 10, 40);
-                    doc.save(`vitals_report_${patientName}.pdf`);
-                    return;
-                }
-
                 const vitals = vitalsData.sort((a, b) => (a.timestamp.seconds || a.timestamp) - (b.timestamp.seconds || b.timestamp));
                 const chartData = {
-                  labels: vitals.map(v => new Date((v.timestamp.seconds || v.timestamp) * 1000).toLocaleString()),
+                  labels: vitals.map(v => (v.timestamp ? v.timestamp.toDate() : new Date()).toLocaleString()),
                   datasets: [
                       { label: 'Systolic', data: vitals.map(v => v.systolic), borderColor: 'red', fill: false },
                       { label: 'Diastolic', data: vitals.map(v => v.diastolic), borderColor: 'blue', fill: false },
@@ -701,7 +724,8 @@
                 doc.setFontSize(12);
                 
                 vitals.forEach(reading => {
-                    const text = `Patient: ${reading.patient_name}, Systolic: ${reading.systolic}, Diastolic: ${reading.diastolic}, Heart Rate: ${reading.heart_rate}, Oxygen: ${reading.oxygen_saturation} - ${new Date((reading.timestamp.seconds || reading.timestamp) * 1000).toLocaleString()}`;
+                    const timestamp = reading.timestamp ? reading.timestamp.toDate() : new Date();
+                    const text = `Patient: ${reading.patient_name}, Systolic: ${reading.systolic}, Diastolic: ${reading.diastolic}, Heart Rate: ${reading.heart_rate}, Oxygen: ${reading.oxygen_saturation} - ${timestamp.toLocaleString()}`;
                     
                     if (y > 270) {
                         doc.addPage();
@@ -717,6 +741,9 @@
                 doc.save(`vitals_report_${patientName}.pdf`);
             } catch (error) {
                 console.error("Error generating PDF:", error);
+            } finally {
+                pdfLoadingDiv.style.display = 'none';
+                downloadPdfButton.disabled = false;
             }
         });
 
@@ -764,7 +791,6 @@
                     heartrateInput.value,
                     oxygenInput.value
                 );
-                vitalsForm.reset();
             }
         });
 
@@ -819,6 +845,7 @@
                 authDiv.style.display = "none";
                 appDiv.style.display = "block";
                 displayVitalSigns(patientSelect.value);
+                resetForm(); // Auto-populate date/time on page load
             } else {
                 currentUserId = null;
                 loadingDiv.style.display = "none";
