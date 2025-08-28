@@ -37,7 +37,7 @@
                 <h2>Record Vitals</h2>
                 <form id="vitals-form">
                     <div class="input-group">
-                        <label for="patient-select">Patient:</label>
+                        <label for="patient-select">Patient:</leader>
                         <select id="patient-select" required>
                             <option value="Mom">Mom</option>
                             <option value="Dad">Dad</option>
@@ -234,7 +234,7 @@
                 vitalsList.querySelectorAll('.edit-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
                         docIdToEdit = btn.dataset.id;
-                        db.collection('vitals').doc(docIdToEdit).get().then(doc => {
+                        db.collection('users').doc(currentUserId).collection('vitals').doc(docIdToEdit).get().then(doc => {
                             const data = doc.data();
                             patientSelect.value = data.patient;
                             systolicInput.value = data.systolic || '';
@@ -303,9 +303,7 @@
                         authDiv.style.display = 'none';
                         appDiv.style.display = 'block';
 
-                        const query = db.collection('vitals')
-                            .where('userId', '==', currentUserId)
-                            .orderBy('timestamp', 'desc');
+                        const query = db.collection('users').doc(currentUserId).collection('vitals').orderBy('timestamp', 'desc');
                         query.onSnapshot(snapshot => {
                             const data = [];
                             snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
@@ -356,7 +354,7 @@
                     return;
                 }
 
-                db.collection('vitals').add({
+                db.collection('users').doc(currentUserId).collection('vitals').add({
                     userId: currentUserId,
                     patient: patientSelect.value,
                     systolic,
@@ -388,7 +386,7 @@
                     return;
                 }
 
-                db.collection('vitals').doc(docIdToEdit).update({
+                db.collection('users').doc(currentUserId).collection('vitals').doc(docIdToEdit).update({
                     patient: patientSelect.value,
                     systolic,
                     diastolic,
@@ -419,7 +417,7 @@
             });
 
             confirmYesBtn.addEventListener('click', () => {
-                db.collection('vitals').doc(docIdToDelete).delete().then(() => {
+                db.collection('users').doc(currentUserId).collection('vitals').doc(docIdToDelete).delete().then(() => {
                     confirmModal.style.display = 'none';
                     docIdToDelete = null;
                     errorDiv.style.display = 'none';
@@ -438,7 +436,7 @@
             downloadPdfButton.addEventListener('click', () => {
                 const startDate = dateRangeStart.value ? new Date(dateRangeStart.value) : null;
                 const endDate = dateRangeEnd.value ? new Date(dateRangeEnd.value) : null;
-                let query = db.collection('vitals').where('userId', '==', currentUserId).orderBy('timestamp', 'desc');
+                let query = db.collection('users').doc(currentUserId).collection('vitals').orderBy('timestamp', 'desc');
 
                 if (startDate) {
                     query = query.where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startDate));
