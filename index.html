@@ -3,69 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parental Vitals Tracker</title>
+    <title>Parental Vitals App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Your local CSS and JS files -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <!-- Loading screen -->
-    <div id="loading">
-        <p>Checking authentication... please wait.</p>
+    <!-- Loading Screen -->
+    <div id="loading" class="screen">
+        <h1 class="text-3xl font-bold">Loading...</h1>
     </div>
 
-    <!-- Authentication Form -->
-    <div id="auth" style="display:none;">
-        <h2>Sign Up or Log In</h2>
-        <input type="email" id="email" placeholder="Email" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button id="signup-button">Sign Up</button>
-        <button id="login-button">Log In</button>
-        <hr>
-        <button id="google-login-button">Sign in with Google</button>
-    </div>
-
-    <!-- Main App -->
-    <div id="app" style="display:none;">
-        <button id="logout-button">Log Out</button>
-        <h1>Parental Vitals Tracker</h1>
-        <p>Enter the latest vital signs for your parents below.</p>
-
-        <form id="vitals-form">
-            <div class="form-group">
-                <label for="patient-select">Patient:</label>
-                <select id="patient-select">
-                    <option value="mother">Mother</option>
-                    <option value="father">Father</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="systolic">Systolic Pressure (mmHg):</label>
-                <input type="number" id="systolic" required>
-            </div>
-            <div class="form-group">
-                <label for="diastolic">Diastolic Pressure (mmHg):</label>
-                <input type="number" id="diastolic" required>
-            </div>
-            <div class="form-group">
-                <label for="heartrate">Heart Rate (BPM):</label>
-                <input type="number" id="heartrate" required>
-            </div>
-            <div class="form-group">
-                <label for="oxygen">Oxygen Saturation (%):</label>
-                <input type="number" id="oxygen" required>
-            </div>
-            <button type="submit">Add Reading</button>
-        </form>
-
-        <div id="data-display">
-            <h2>Recent Readings</h2>
-            <ul id="vitals-list"></ul>
+    <!-- Auth Screen -->
+    <div id="auth" class="screen">
+        <div class="auth-card">
+            <h1 class="text-3xl font-bold mb-6 text-center">Login</h1>
+            
+            <!-- We are removing the email/password fields as requested -->
+            <button id="google-login-button" class="google-btn">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/2048px-Google_%22G%22_logo.svg.png" alt="Google logo" class="w-5 h-5 mr-2">
+                Sign in with Google
+            </button>
         </div>
+    </div>
 
-        <div id="chart-container">
-            <h2>Vitals Over Time</h2>
-            <canvas id="vitals-chart"></canvas>
-            <button id="download-pdf">Download PDF Report</button>
+    <!-- Main App Screen -->
+    <div id="app" class="screen">
+        <div class="header">
+            <h1 class="text-3xl font-bold">Parental Vitals App</h1>
+            <button id="logout-button" class="logout-btn">Log out</button>
+        </div>
+        <div class="content-container">
+            <div class="data-entry-card">
+                <h2 class="text-xl font-semibold mb-4">Enter Vital Signs</h2>
+                <form id="vitals-form">
+                    <div class="input-group">
+                        <label for="patient-select">Patient:</label>
+                        <select id="patient-select" required>
+                            <option value="Mom">Mom</option>
+                            <option value="Dad">Dad</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="systolic">Systolic (mmHg):</label>
+                        <input type="number" id="systolic" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="diastolic">Diastolic (mmHg):</label>
+                        <input type="number" id="diastolic" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="heartrate">Heart Rate (bpm):</label>
+                        <input type="number" id="heartrate" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="oxygen">Oxygen Saturation (%):</label>
+                        <input type="number" id="oxygen" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Add Vital Signs</button>
+                </form>
+            </div>
+
+            <div class="data-view-card">
+                <h2 class="text-xl font-semibold mb-4">Vitals History</h2>
+                <ul id="vitals-list"></ul>
+                <div class="chart-container">
+                    <canvas id="vitals-chart"></canvas>
+                </div>
+                <button id="download-pdf" class="download-btn">Download PDF Report</button>
+            </div>
         </div>
     </div>
 
@@ -73,20 +88,14 @@
     <div id="confirm-modal" class="modal">
         <div class="modal-content">
             <p id="confirm-message"></p>
-            <div class="modal-buttons">
-                <button id="confirm-yes-btn">Yes</button>
-                <button id="confirm-no-btn">No</button>
+            <div class="modal-actions">
+                <button id="confirm-yes-btn" class="modal-btn yes">Yes</button>
+                <button id="confirm-no-btn" class="modal-btn no">No</button>
             </div>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
-    
     <script src="script.js"></script>
+
 </body>
 </html>
