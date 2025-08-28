@@ -95,6 +95,13 @@
             cursor: pointer;
         }
 
+        #user-id-display {
+            font-size: 0.8em;
+            color: #718096;
+            text-align: right;
+            margin-top: -10px;
+        }
+
         #vitals-form {
             display: flex;
             flex-direction: column;
@@ -261,6 +268,8 @@
             <button id="logout-button">Logout</button>
         </div>
         
+        <div id="user-id-display"></div>
+
         <h2>Record Vitals</h2>
         <form id="vitals-form">
             <label for="patient-select">Patient:</label>
@@ -355,6 +364,8 @@
 
         const logoutButton = document.getElementById('logout-button');
         const googleLoginButton = document.getElementById('google-login-button');
+
+        const userIdDisplay = document.getElementById('user-id-display');
 
         // New DOM elements for the custom confirmation modal
         const confirmModal = document.getElementById('confirm-modal');
@@ -841,6 +852,7 @@
             console.log("Auth state changed:", user);
             if(user){
                 currentUserId = user.uid;
+                userIdDisplay.textContent = `User ID: ${currentUserId}`; // Display the UID
                 loadingDiv.style.display = "none";
                 authDiv.style.display = "none";
                 appDiv.style.display = "block";
@@ -848,6 +860,7 @@
                 resetForm(); // Auto-populate date/time on page load
             } else {
                 currentUserId = null;
+                userIdDisplay.textContent = 'User ID: N/A';
                 loadingDiv.style.display = "none";
                 authDiv.style.display = "block";
                 appDiv.style.display = "none";
