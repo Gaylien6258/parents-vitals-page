@@ -6,9 +6,6 @@
     <title>Vitals Tracker</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf-autotable.min.js"></script>
@@ -37,7 +34,7 @@
                 <h2>Record Vitals</h2>
                 <form id="vitals-form">
                     <div class="input-group">
-                        <label for="patient-select">Patient:</leader>
+                        <label for="patient-select">Patient:</label>
                         <select id="patient-select" required>
                             <option value="Mom">Mom</option>
                             <option value="Dad">Dad</option>
@@ -102,8 +99,13 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         try {
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
+            import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+            import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, orderBy, query, onSnapshot, getDocs, where, Timestamp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
+            import { GoogleAuthProvider as GoogleAuthProviderCompat } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js';
+
             const firebaseConfig = {
                 apiKey: "AIzaSyDWKz6O-5xir46vivUPBAse_vMSaXWKamU",
                 authDomain: "parents-vitals-data.firebaseapp.com",
@@ -113,9 +115,9 @@
                 appId: "1:34332288387:web:ea67be6bb564e8f402c2b6"
             };
 
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-            const auth = firebase.auth();
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
             const { jsPDF } = window.jspdf;
 
             const loadingDiv = document.getElementById('loading');
@@ -150,6 +152,7 @@
             let docIdToDelete = null;
             let vitalsChart = null;
             let currentUserId = null;
+            let unsubscribeVitals = null;
 
             const patientNames = { "Mom": "Susan", "Dad": "Gary" };
 
@@ -163,12 +166,13 @@
             }
 
             function logout() {
-                auth.signOut().then(() => {
+                signOut(auth).then(() => {
                     appDiv.style.display = 'none';
                     authDiv.style.display = 'flex';
                     currentUserId = null;
                     userIdDisplay.textContent = '';
                     if (vitalsChart) vitalsChart.destroy();
+                    if (unsubscribeVitals) unsubscribeVitals();
                 }).catch(error => {
                     errorDiv.textContent = 'Logout failed: ' + error.message;
                     errorDiv.style.display = 'block';
@@ -234,8 +238,9 @@
                 vitalsList.querySelectorAll('.edit-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
                         docIdToEdit = btn.dataset.id;
-                        db.collection('users').doc(currentUserId).collection('vitals').doc(docIdToEdit).get().then(doc => {
-                            const data = doc.data();
+                        const docRef = doc(db, 'users', currentUserId, 'vitals', docIdToEdit);
+                        getDoc(docRef).then(fetchedDoc => {
+                            const data = fetchedDoc.data();
                             patientSelect.value = data.patient;
                             systolicInput.value = data.systolic || '';
                             diastolicInput.value = data.diastolic || '';
@@ -294,7 +299,7 @@
                 }, 1000);
             }
 
-            auth.onAuthStateChanged(user => {
+            onAuthStateChanged(auth, (user) => {
                 try {
                     if (user) {
                         currentUserId = user.uid;
@@ -303,13 +308,14 @@
                         authDiv.style.display = 'none';
                         appDiv.style.display = 'block';
 
-                        const query = db.collection('users').doc(currentUserId).collection('vitals').orderBy('timestamp', 'desc');
-                        query.onSnapshot(snapshot => {
+                        const vitalsCol = collection(db, 'users', currentUserId, 'vitals');
+                        const q = query(vitalsCol, orderBy('timestamp', 'desc'));
+                        unsubscribeVitals = onSnapshot(q, (snapshot) => {
                             const data = [];
-                            snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+                            snapshot.forEach((fetchedDoc) => data.push({ id: fetchedDoc.id, ...fetchedDoc.data() }));
                             displayVitals(data);
                             updateChart(data);
-                        }, error => {
+                        }, (error) => {
                             errorDiv.textContent = 'Error fetching vitals: ' + error.message;
                             errorDiv.style.display = 'block';
                         });
@@ -317,29 +323,35 @@
                         loadingDiv.style.display = 'none';
                         authDiv.style.display = 'flex';
                         appDiv.style.display = 'none';
+                        if (unsubscribeVitals) {
+                            unsubscribeVitals();
+                            unsubscribeVitals = null;
+                        }
                     }
                 } catch (error) {
                     errorDiv.textContent = 'Auth error: ' + error.message;
                     errorDiv.style.display = 'block';
                 }
-            }, error => {
+            }, (error) => {
                 errorDiv.textContent = 'Auth initialization error: ' + error.message;
                 errorDiv.style.display = 'block';
                 loadingDiv.style.display = 'none';
                 authDiv.style.display = 'flex';
             });
 
-            googleLoginButton.addEventListener('click', () => {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider).catch(error => {
+            googleLoginButton.addEventListener('click', async () => {
+                const provider = new GoogleAuthProviderCompat();
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
                     errorDiv.textContent = 'Login failed: ' + error.message;
                     errorDiv.style.display = 'block';
-                });
+                }
             });
 
             logoutButton.addEventListener('click', logout);
 
-            vitalsForm.addEventListener('submit', e => {
+            vitalsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const systolic = parseInt(systolicInput.value) || null;
                 const diastolic = parseInt(diastolicInput.value) || null;
@@ -354,25 +366,27 @@
                     return;
                 }
 
-                db.collection('users').doc(currentUserId).collection('vitals').add({
-                    userId: currentUserId,
-                    patient: patientSelect.value,
-                    systolic,
-                    diastolic,
-                    heartrate,
-                    oxygen,
-                    glucose,
-                    timestamp: firebase.firestore.Timestamp.fromDate(timestamp)
-                }).then(() => {
+                try {
+                    const vitalsCol = collection(db, 'users', currentUserId, 'vitals');
+                    await addDoc(vitalsCol, {
+                        userId: currentUserId,
+                        patient: patientSelect.value,
+                        systolic,
+                        diastolic,
+                        heartrate,
+                        oxygen,
+                        glucose,
+                        timestamp: Timestamp.fromDate(timestamp)
+                    });
                     vitalsForm.reset();
                     errorDiv.style.display = 'none';
-                }).catch(error => {
+                } catch (error) {
                     errorDiv.textContent = 'Error adding vitals: ' + error.message;
                     errorDiv.style.display = 'block';
-                });
+                }
             });
 
-            updateBtn.addEventListener('click', () => {
+            updateBtn.addEventListener('click', async () => {
                 const systolic = parseInt(systolicInput.value) || null;
                 const diastolic = parseInt(diastolicInput.value) || null;
                 const heartrate = parseInt(heartrateInput.value) || null;
@@ -386,25 +400,27 @@
                     return;
                 }
 
-                db.collection('users').doc(currentUserId).collection('vitals').doc(docIdToEdit).update({
-                    patient: patientSelect.value,
-                    systolic,
-                    diastolic,
-                    heartrate,
-                    oxygen,
-                    glucose,
-                    timestamp: firebase.firestore.Timestamp.fromDate(timestamp)
-                }).then(() => {
+                try {
+                    const docRef = doc(db, 'users', currentUserId, 'vitals', docIdToEdit);
+                    await updateDoc(docRef, {
+                        patient: patientSelect.value,
+                        systolic,
+                        diastolic,
+                        heartrate,
+                        oxygen,
+                        glucose,
+                        timestamp: Timestamp.fromDate(timestamp)
+                    });
                     vitalsForm.reset();
                     submitBtn.style.display = 'block';
                     updateBtn.style.display = 'none';
                     cancelEditBtn.style.display = 'none';
                     docIdToEdit = null;
                     errorDiv.style.display = 'none';
-                }).catch(error => {
+                } catch (error) {
                     errorDiv.textContent = 'Error updating vitals: ' + error.message;
                     errorDiv.style.display = 'block';
-                });
+                }
             });
 
             cancelEditBtn.addEventListener('click', () => {
@@ -416,15 +432,17 @@
                 errorDiv.style.display = 'none';
             });
 
-            confirmYesBtn.addEventListener('click', () => {
-                db.collection('users').doc(currentUserId).collection('vitals').doc(docIdToDelete).delete().then(() => {
+            confirmYesBtn.addEventListener('click', async () => {
+                try {
+                    const docRef = doc(db, 'users', currentUserId, 'vitals', docIdToDelete);
+                    await deleteDoc(docRef);
                     confirmModal.style.display = 'none';
                     docIdToDelete = null;
                     errorDiv.style.display = 'none';
-                }).catch(error => {
+                } catch (error) {
                     errorDiv.textContent = 'Error deleting vital: ' + error.message;
                     errorDiv.style.display = 'block';
-                });
+                }
             });
 
             confirmNoBtn.addEventListener('click', () => {
@@ -433,29 +451,30 @@
                 errorDiv.style.display = 'none';
             });
 
-            downloadPdfButton.addEventListener('click', () => {
+            downloadPdfButton.addEventListener('click', async () => {
                 const startDate = dateRangeStart.value ? new Date(dateRangeStart.value) : null;
                 const endDate = dateRangeEnd.value ? new Date(dateRangeEnd.value) : null;
-                let query = db.collection('users').doc(currentUserId).collection('vitals').orderBy('timestamp', 'desc');
+                let q = query(collection(db, 'users', currentUserId, 'vitals'), orderBy('timestamp', 'desc'));
 
                 if (startDate) {
-                    query = query.where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startDate));
+                    q = query(q, where('timestamp', '>=', Timestamp.fromDate(startDate)));
                 }
                 if (endDate) {
                     const endDateAdjusted = new Date(endDate);
                     endDateAdjusted.setHours(23, 59, 59, 999);
-                    query = query.where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endDateAdjusted));
+                    q = query(q, where('timestamp', '<=', Timestamp.fromDate(endDateAdjusted)));
                 }
 
-                query.get().then(snapshot => {
+                try {
+                    const snapshot = await getDocs(q);
                     const data = [];
-                    snapshot.forEach(doc => data.push(doc.data()));
+                    snapshot.forEach((fetchedDoc) => data.push(fetchedDoc.data()));
                     generatePDF(data);
-                }).catch(error => {
+                } catch (error) {
                     errorDiv.textContent = 'Error generating PDF: ' + error.message;
                     errorDiv.style.display = 'block';
                     pdfLoadingDiv.style.display = 'none';
-                });
+                }
             });
         } catch (error) {
             document.getElementById('error').textContent = 'Initialization error: ' + error.message;
