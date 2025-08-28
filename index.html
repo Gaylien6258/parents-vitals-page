@@ -67,7 +67,20 @@
             <canvas id="vitals-chart"></canvas>
             <button id="download-pdf">Download PDF Report</button>
         </div>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <p id="confirm-message"></p>
+            <div class="modal-buttons">
+                <button id="confirm-yes-btn">Yes</button>
+                <button id="confirm-no-btn">No</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
