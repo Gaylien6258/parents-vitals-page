@@ -33,6 +33,14 @@ const downloadPdfButton = document.getElementById('download-pdf');
 const logoutButton = document.getElementById('logout-button');
 const googleLoginButton = document.getElementById('google-login-button');
 
+// New DOM elements for the custom confirmation modal
+const confirmModal = document.getElementById('confirm-modal');
+const confirmMessage = document.getElementById('confirm-message');
+const confirmYesBtn = document.getElementById('confirm-yes-btn');
+const confirmNoBtn = document.getElementById('confirm-no-btn');
+
+let docIdToDelete = null;
+
 // ---------- Auth Functions ----------
 function signup(email, password) {
     auth.createUserWithEmailAndPassword(email, password)
@@ -196,14 +204,26 @@ vitalsForm.addEventListener('submit', (e) => {
 vitalsList.addEventListener('click', (e) => {
     // Check if the clicked element has the 'delete-btn' class
     if (e.target.classList.contains('delete-btn')) {
-        const docId = e.target.getAttribute('data-id');
-        // Ask for confirmation before deleting
-        if (confirm('Are you sure you want to delete this vital sign entry?')) {
-            deleteVitalSign(docId);
-        }
+        docIdToDelete = e.target.getAttribute('data-id');
+        // Show the custom confirmation modal
+        confirmModal.style.display = 'flex';
+        confirmMessage.textContent = 'Are you sure you want to delete this vital sign entry?';
     }
 });
 
+// Event listeners for the custom confirmation modal buttons
+confirmYesBtn.addEventListener('click', () => {
+    if (docIdToDelete) {
+        deleteVitalSign(docIdToDelete);
+    }
+    confirmModal.style.display = 'none';
+    docIdToDelete = null;
+});
+
+confirmNoBtn.addEventListener('click', () => {
+    confirmModal.style.display = 'none';
+    docIdToDelete = null;
+});
 
 // ---------- Auth State Listener ----------
 auth.onAuthStateChanged(user => {
