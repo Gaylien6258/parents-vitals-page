@@ -40,19 +40,21 @@ const confirmYesBtn = document.getElementById('confirm-yes-btn');
 const confirmNoBtn = document.getElementById('confirm-no-btn');
 
 let docIdToDelete = null;
+let currentUserId = null; // Variable to store the current user's UID
 
 // ---------- Auth Functions ----------
-function signup(email, password) {
-    auth.createUserWithEmailAndPassword(email, password)
-        .then(userCredential => console.log("Signed up:", userCredential.user.email))
-        .catch(error => alert("Sign up failed: " + error.message));
-}
+// We will remove these functions as they are no longer needed
+// function signup(email, password) {
+//     auth.createUserWithEmailAndPassword(email, password)
+//         .then(userCredential => console.log("Signed up:", userCredential.user.email))
+//         .catch(error => alert("Sign up failed: " + error.message));
+// }
 
-function login(email, password) {
-    auth.signInWithEmailAndPassword(email, password)
-        .then(userCredential => console.log("Logged in:", userCredential.user.email))
-        .catch(error => alert("Login failed: " + error.message));
-}
+// function login(email, password) {
+//     auth.signInWithEmailAndPassword(email, password)
+//         .then(userCredential => console.log("Logged in:", userCredential.user.email))
+//         .catch(error => alert("Login failed: " + error.message));
+// }
 
 function logout() {
     auth.signOut()
@@ -70,8 +72,12 @@ googleLoginButton.addEventListener('click', () => {
 
 // ---------- Vitals Functions ----------
 async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
+    if (!currentUserId) {
+        console.error("No user logged in. Cannot add vitals.");
+        return;
+    }
     try {
-        await db.collection("vitals").add({
+        await db.collection("users").doc(currentUserId).collection("vitals").add({
             patient_name: patient,
             systolic: parseInt(systolic),
             diastolic: parseInt(diastolic),
@@ -88,10 +94,13 @@ async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
 
 // Function to delete a vital sign entry from Firestore
 async function deleteVitalSign(docId) {
+    if (!currentUserId) {
+        console.error("No user logged in. Cannot delete vitals.");
+        return;
+    }
     try {
-        await db.collection("vitals").doc(docId).delete();
+        await db.collection("users").doc(currentUserId).collection("vitals").doc(docId).delete();
         console.log("Document successfully deleted!");
-        // Refresh the list and chart after deletion
         displayVitalSigns(); 
     } catch (error) {
         console.error("Error removing document: ", error);
@@ -100,9 +109,14 @@ async function deleteVitalSign(docId) {
 
 // Function to fetch and display vital signs from Firestore
 async function displayVitalSigns() {
+    if (!currentUserId) {
+        console.error("No user logged in. Cannot display vitals.");
+        return;
+    }
     vitalsList.innerHTML = '';
     const vitals = [];
-    const querySnapshot = await db.collection("vitals").orderBy("timestamp", "desc").get();
+    // Fetch only the data for the current user
+    const querySnapshot = await db.collection("users").doc(currentUserId).collection("vitals").orderBy("timestamp", "desc").get();
     
     querySnapshot.forEach(doc => {
         const data = doc.data();
@@ -111,7 +125,6 @@ async function displayVitalSigns() {
         const li = document.createElement('li');
         li.textContent = `Patient: ${data.patient_name}, Systolic: ${data.systolic}, Diastolic: ${data.diastolic}, Heart Rate: ${data.heart_rate}, Oxygen: ${data.oxygen_saturation}`;
         
-        // Create a delete button
         const deleteButton = document.createElement('button');
         deleteButton.textContent = 'Delete';
         deleteButton.classList.add('delete-btn');
@@ -174,17 +187,18 @@ downloadPdfButton.addEventListener('click', () => {
 });
 
 // ---------- Event Listeners ----------
-document.getElementById('signup-button').addEventListener('click', () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    signup(email, password);
-});
+// We will comment out the email/password event listeners
+// document.getElementById('signup-button').addEventListener('click', () => {
+//     const email = document.getElementById('email').value;
+//     const password = document.getElementById('password').value;
+//     signup(email, password);
+// });
 
-document.getElementById('login-button').addEventListener('click', () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    login(email, password);
-});
+// document.getElementById('login-button').addEventListener('click', () => {
+//     const email = document.getElementById('email').value;
+//     const password = document.getElementById('password').value;
+//     login(email, password);
+// });
 
 logoutButton.addEventListener('click', logout);
 
@@ -200,18 +214,14 @@ vitalsForm.addEventListener('submit', (e) => {
     vitalsForm.reset();
 });
 
-// New Event Listener for Delete Buttons
 vitalsList.addEventListener('click', (e) => {
-    // Check if the clicked element has the 'delete-btn' class
     if (e.target.classList.contains('delete-btn')) {
         docIdToDelete = e.target.getAttribute('data-id');
-        // Show the custom confirmation modal
         confirmModal.style.display = 'flex';
         confirmMessage.textContent = 'Are you sure you want to delete this vital sign entry?';
     }
 });
 
-// Event listeners for the custom confirmation modal buttons
 confirmYesBtn.addEventListener('click', () => {
     if (docIdToDelete) {
         deleteVitalSign(docIdToDelete);
@@ -230,10 +240,13 @@ auth.onAuthStateChanged(user => {
     console.log("Auth state changed:", user);
     loadingDiv.style.display = "none";
     if(user){
+        // Store the user ID for later use
+        currentUserId = user.uid;
         authDiv.style.display = "none";
         appDiv.style.display = "block";
         displayVitalSigns();
     } else {
+        currentUserId = null;
         authDiv.style.display = "block";
         appDiv.style.display = "none";
     }
