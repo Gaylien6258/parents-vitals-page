@@ -16,6 +16,7 @@
 <body>
     <div id="loading" class="screen">Loading...</div>
     <div id="pdf-loading" class="screen" style="display: none;">Generating PDF...</div>
+    <div id="error" class="screen" style="display: none; color: red;"></div>
 
     <div class="screen" id="auth" style="display: none;">
         <div class="auth-card">
@@ -37,7 +38,7 @@
                 <form id="vitals-form">
                     <div class="input-group">
                         <label for="patient-select">Patient:</label>
-                        <select id="patient-select">
+                        <select id="patient-select" required>
                             <option value="Mom">Mom</option>
                             <option value="Dad">Dad</option>
                         </select>
@@ -64,7 +65,7 @@
                     </div>
                     <div class="input-group">
                         <label for="timestamp-input">Date and Time:</label>
-                        <input type="datetime-local" id="timestamp-input">
+                        <input type="datetime-local" id="timestamp-input" required>
                     </div>
                     <button type="submit" id="submit-btn" class="submit-btn">Add Vitals</button>
                     <button type="button" id="update-btn" class="submit-btn" style="display: none;">Update Vitals</button>
@@ -102,330 +103,367 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDWKz6O-5xir46vivUPBAse_vMSaXWKamU",
-            authDomain: "parents-vitals-data.firebaseapp.com",
-            projectId: "parents-vitals-data",
-            storageBucket: "parents-vitals-data.firebasestorage.app",
-            messagingSenderId: "34332288387",
-            appId: "1:34332288387:web:ea67be6bb564e8f402c2b6"
-        };
+        try {
+            const firebaseConfig = {
+                apiKey: "AIzaSyDWKz6O-5xir46vivUPBAse_vMSaXWKamU",
+                authDomain: "parents-vitals-data.firebaseapp.com",
+                projectId: "parents-vitals-data",
+                storageBucket: "parents-vitals-data.firebasestorage.app",
+                messagingSenderId: "34332288387",
+                appId: "1:34332288387:web:ea67be6bb564e8f402c2b6"
+            };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const { jsPDF } = window.jspdf;
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const auth = firebase.auth();
+            const { jsPDF } = window.jspdf;
 
-        const loadingDiv = document.getElementById('loading');
-        const authDiv = document.getElementById('auth');
-        const appDiv = document.getElementById('app');
-        const pdfLoadingDiv = document.getElementById('pdf-loading');
-        const vitalsForm = document.getElementById('vitals-form');
-        const patientSelect = document.getElementById('patient-select');
-        const systolicInput = document.getElementById('systolic');
-        const diastolicInput = document.getElementById('diastolic');
-        const heartrateInput = document.getElementById('heartrate');
-        const oxygenInput = document.getElementById('oxygen');
-        const glucoseInput = document.getElementById('glucose');
-        const timestampInput = document.getElementById('timestamp-input');
-        const vitalsList = document.getElementById('vitals-list');
-        const downloadPdfButton = document.getElementById('download-pdf');
-        const submitBtn = document.getElementById('submit-btn');
-        const updateBtn = document.getElementById('update-btn');
-        const cancelEditBtn = document.getElementById('cancel-edit-btn');
-        const logoutButton = document.getElementById('logout-button');
-        const googleLoginButton = document.getElementById('google-login-button');
-        const userIdDisplay = document.getElementById('user-id-display');
-        const confirmModal = document.getElementById('confirm-modal');
-        const confirmMessage = document.getElementById('confirm-message');
-        const confirmYesBtn = document.getElementById('confirm-yes-btn');
-        const confirmNoBtn = document.getElementById('confirm-no-btn');
-        const dateRangeStart = document.getElementById('date-range-start');
-        const dateRangeEnd = document.getElementById('date-range-end');
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const authDiv = document.getElementById('auth');
+            const appDiv = document.getElementById('app');
+            const pdfLoadingDiv = document.getElementById('pdf-loading');
+            const vitalsForm = document.getElementById('vitals-form');
+            const patientSelect = document.getElementById('patient-select');
+            const systolicInput = document.getElementById('systolic');
+            const diastolicInput = document.getElementById('diastolic');
+            const heartrateInput = document.getElementById('heartrate');
+            const oxygenInput = document.getElementById('oxygen');
+            const glucoseInput = document.getElementById('glucose');
+            const timestampInput = document.getElementById('timestamp-input');
+            const vitalsList = document.getElementById('vitals-list');
+            const downloadPdfButton = document.getElementById('download-pdf');
+            const submitBtn = document.getElementById('submit-btn');
+            const updateBtn = document.getElementById('update-btn');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const logoutButton = document.getElementById('logout-button');
+            const googleLoginButton = document.getElementById('google-login-button');
+            const userIdDisplay = document.getElementById('user-id-display');
+            const confirmModal = document.getElementById('confirm-modal');
+            const confirmMessage = document.getElementById('confirm-message');
+            const confirmYesBtn = document.getElementById('confirm-yes-btn');
+            const confirmNoBtn = document.getElementById('confirm-no-btn');
+            const dateRangeStart = document.getElementById('date-range-start');
+            const dateRangeEnd = document.getElementById('date-range-end');
 
-        let docIdToEdit = null;
-        let docIdToDelete = null;
-        let vitalsChart = null;
-        let currentUserId = null;
+            let docIdToEdit = null;
+            let docIdToDelete = null;
+            let vitalsChart = null;
+            let currentUserId = null;
 
-        const patientNames = { "Mom": "Susan", "Dad": "Gary" };
+            const patientNames = { "Mom": "Susan", "Dad": "Gary" };
 
-        function validateInputs(systolic, diastolic, heartrate, oxygen, glucose) {
-            if (systolic && (systolic < 0 || systolic > 300)) return false;
-            if (diastolic && (diastolic < 0 || diastolic > 200)) return false;
-            if (heartrate && (heartrate < 0 || heartrate > 200)) return false;
-            if (oxygen && (oxygen < 0 || oxygen > 100)) return false;
-            if (glucose && (glucose < 0 || glucose > 500)) return false;
-            return true;
-        }
+            function validateInputs(systolic, diastolic, heartrate, oxygen, glucose) {
+                if (systolic && (systolic < 0 || systolic > 300)) return false;
+                if (diastolic && (diastolic < 0 || diastolic > 200)) return false;
+                if (heartrate && (heartrate < 0 || heartrate > 200)) return false;
+                if (oxygen && (oxygen < 0 || oxygen > 100)) return false;
+                if (glucose && (glucose < 0 || glucose > 500)) return false;
+                return true;
+            }
 
-        function logout() {
-            auth.signOut().then(() => {
-                appDiv.style.display = 'none';
-                authDiv.style.display = 'flex';
-                currentUserId = null;
-                userIdDisplay.textContent = '';
+            function logout() {
+                auth.signOut().then(() => {
+                    appDiv.style.display = 'none';
+                    authDiv.style.display = 'flex';
+                    currentUserId = null;
+                    userIdDisplay.textContent = '';
+                    if (vitalsChart) vitalsChart.destroy();
+                }).catch(error => {
+                    errorDiv.textContent = 'Logout failed: ' + error.message;
+                    errorDiv.style.display = 'block';
+                });
+            }
+
+            function updateChart(data) {
                 if (vitalsChart) vitalsChart.destroy();
-            }).catch(error => {
-                alert('Logout failed: ' + error.message);
-            });
-        }
-
-        function updateChart(data) {
-            if (vitalsChart) vitalsChart.destroy();
-            const ctx = document.getElementById('vitals-chart').getContext('2d');
-            vitalsChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    datasets: [
-                        {
-                            label: 'Heart Rate (bpm)',
-                            data: data.map(d => ({ x: d.timestamp.toDate(), y: d.heartrate || null })),
-                            borderColor: '#4f46e5',
-                            fill: false
-                        },
-                        {
-                            label: 'Oxygen Saturation (%)',
-                            data: data.map(d => ({ x: d.timestamp.toDate(), y: d.oxygen || null })),
-                            borderColor: '#10b981',
-                            fill: false
-                        },
-                        {
-                            label: 'Blood Glucose (mg/dL)',
-                            data: data.map(d => ({ x: d.timestamp.toDate(), y: d.glucose || null })),
-                            borderColor: '#f59e0b',
-                            fill: false
+                const ctx = document.getElementById('vitals-chart').getContext('2d');
+                vitalsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'Heart Rate (bpm)',
+                                data: data.map(d => ({ x: d.timestamp.toDate(), y: d.heartrate || null })),
+                                borderColor: '#4f46e5',
+                                fill: false
+                            },
+                            {
+                                label: 'Oxygen Saturation (%)',
+                                data: data.map(d => ({ x: d.timestamp.toDate(), y: d.oxygen || null })),
+                                borderColor: '#10b981',
+                                fill: false
+                            },
+                            {
+                                label: 'Blood Glucose (mg/dL)',
+                                data: data.map(d => ({ x: d.timestamp.toDate(), y: d.glucose || null })),
+                                borderColor: '#f59e0b',
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: { type: 'time', time: { unit: 'day' } },
+                            y: { beginAtZero: true }
                         }
-                    ]
-                },
-                options: {
-                    scales: {
-                        x: { type: 'time', time: { unit: 'day' } },
-                        y: { beginAtZero: true }
                     }
-                }
-            });
-        }
+                });
+            }
 
-        function displayVitals(data) {
-            vitalsList.innerHTML = '';
-            data.forEach(doc => {
-                const vital = doc.data();
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    ${patientNames[vital.patient] || vital.patient} - 
-                    ${vital.timestamp.toDate().toLocaleString()}: 
-                    BP: ${vital.systolic || '-'} / ${vital.diastolic || '-'} mmHg, 
-                    HR: ${vital.heartrate || '-'} bpm, 
-                    O2: ${vital.oxygen || '-'}%, 
-                    Glucose: ${vital.glucose || '-'} mg/dL
-                    <div>
-                        <button class="edit-btn" data-id="${doc.id}">Edit</button>
-                        <button class="delete-btn" data-id="${doc.id}">Delete</button>
-                    </div>
-                `;
-                vitalsList.appendChild(li);
-            });
+            function displayVitals(data) {
+                vitalsList.innerHTML = '';
+                data.forEach(doc => {
+                    const vital = doc.data();
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        ${patientNames[vital.patient] || vital.patient} - 
+                        ${vital.timestamp.toDate().toLocaleString()}: 
+                        BP: ${vital.systolic || '-'} / ${vital.diastolic || '-'} mmHg, 
+                        HR: ${vital.heartrate || '-'} bpm, 
+                        O2: ${vital.oxygen || '-'}%, 
+                        Glucose: ${vital.glucose || '-'} mg/dL
+                        <div>
+                            <button class="edit-btn" data-id="${doc.id}">Edit</button>
+                            <button class="delete-btn" data-id="${doc.id}">Delete</button>
+                        </div>
+                    `;
+                    vitalsList.appendChild(li);
+                });
 
-            vitalsList.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    docIdToEdit = btn.dataset.id;
-                    db.collection('vitals').doc(docIdToEdit).get().then(doc => {
-                        const data = doc.data();
-                        patientSelect.value = data.patient;
-                        systolicInput.value = data.systolic || '';
-                        diastolicInput.value = data.diastolic || '';
-                        heartrateInput.value = data.heartrate || '';
-                        oxygenInput.value = data.oxygen || '';
-                        glucoseInput.value = data.glucose || '';
-                        timestampInput.value = data.timestamp.toDate().toISOString().slice(0, 16);
-                        submitBtn.style.display = 'none';
-                        updateBtn.style.display = 'block';
-                        cancelEditBtn.style.display = 'block';
+                vitalsList.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        docIdToEdit = btn.dataset.id;
+                        db.collection('vitals').doc(docIdToEdit).get().then(doc => {
+                            const data = doc.data();
+                            patientSelect.value = data.patient;
+                            systolicInput.value = data.systolic || '';
+                            diastolicInput.value = data.diastolic || '';
+                            heartrateInput.value = data.heartrate || '';
+                            oxygenInput.value = data.oxygen || '';
+                            glucoseInput.value = data.glucose || '';
+                            timestampInput.value = data.timestamp.toDate().toISOString().slice(0, 16);
+                            submitBtn.style.display = 'none';
+                            updateBtn.style.display = 'block';
+                            cancelEditBtn.style.display = 'block';
+                        }).catch(error => {
+                            errorDiv.textContent = 'Error loading vital: ' + error.message;
+                            errorDiv.style.display = 'block';
+                        });
                     });
                 });
-            });
 
-            vitalsList.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    docIdToDelete = btn.dataset.id;
-                    confirmMessage.textContent = 'Are you sure you want to delete this entry?';
-                    confirmModal.style.display = 'flex';
+                vitalsList.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        docIdToDelete = btn.dataset.id;
+                        confirmMessage.textContent = 'Are you sure you want to delete this entry?';
+                        confirmModal.style.display = 'flex';
+                    });
                 });
-            });
-        }
+            }
 
-        function generatePDF(data) {
-            pdfLoadingDiv.style.display = 'flex';
-            const doc = new jsPDF();
-            doc.setFontSize(20);
-            doc.text('Vitals Report', 20, 20);
-            doc.setFontSize(12);
-            doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
+            function generatePDF(data) {
+                pdfLoadingDiv.style.display = 'flex';
+                const doc = new jsPDF();
+                doc.setFontSize(20);
+                doc.text('Vitals Report', 20, 20);
+                doc.setFontSize(12);
+                doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
+                doc.text('Prepared for: Dr. [Doctor Name]', 20, 40);
 
-            const tableData = data.map(vital => [
-                patientNames[vital.patient] || vital.patient,
-                vital.timestamp.toDate().toLocaleString(),
-                vital.systolic ? `${vital.systolic}/${vital.diastolic || '-'}` : '-',
-                vital.heartrate || '-',
-                vital.oxygen || '-',
-                vital.glucose || '-'
-            ]);
+                const tableData = data.map(vital => [
+                    patientNames[vital.patient] || vital.patient,
+                    vital.timestamp.toDate().toLocaleString(),
+                    vital.systolic ? `${vital.systolic}/${vital.diastolic || '-'}` : '-',
+                    vital.heartrate || '-',
+                    vital.oxygen || '-',
+                    vital.glucose || '-'
+                ]);
 
-            doc.autoTable({
-                head: [['Patient', 'Date', 'Blood Pressure (mmHg)', 'Heart Rate (bpm)', 'Oxygen (%)', 'Glucose (mg/dL)']],
-                body: tableData,
-                startY: 40,
-                styles: { fontSize: 10 },
-                headStyles: { fillColor: [79, 70, 229] }
-            });
-
-            setTimeout(() => {
-                doc.save('vitals-report.pdf');
-                pdfLoadingDiv.style.display = 'none';
-            }, 1000);
-        }
-
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUserId = user.uid;
-                userIdDisplay.textContent = `Logged in as: ${user.email}`;
-                loadingDiv.style.display = 'none';
-                authDiv.style.display = 'none';
-                appDiv.style.display = 'block';
-
-                const query = db.collection('vitals')
-                    .where('userId', '==', currentUserId)
-                    .orderBy('timestamp', 'desc');
-                query.onSnapshot(snapshot => {
-                    const data = [];
-                    snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-                    displayVitals(data);
-                    updateChart(data);
+                doc.autoTable({
+                    head: [['Patient', 'Date', 'Blood Pressure (mmHg)', 'Heart Rate (bpm)', 'Oxygen (%)', 'Glucose (mg/dL)']],
+                    body: tableData,
+                    startY: 50,
+                    styles: { fontSize: 10 },
+                    headStyles: { fillColor: [79, 70, 229] }
                 });
-            } else {
+
+                setTimeout(() => {
+                    doc.save('vitals-report.pdf');
+                    pdfLoadingDiv.style.display = 'none';
+                }, 1000);
+            }
+
+            auth.onAuthStateChanged(user => {
+                try {
+                    if (user) {
+                        currentUserId = user.uid;
+                        userIdDisplay.textContent = `Logged in as: ${user.email}`;
+                        loadingDiv.style.display = 'none';
+                        authDiv.style.display = 'none';
+                        appDiv.style.display = 'block';
+
+                        const query = db.collection('vitals')
+                            .where('userId', '==', currentUserId)
+                            .orderBy('timestamp', 'desc');
+                        query.onSnapshot(snapshot => {
+                            const data = [];
+                            snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+                            displayVitals(data);
+                            updateChart(data);
+                        }, error => {
+                            errorDiv.textContent = 'Error fetching vitals: ' + error.message;
+                            errorDiv.style.display = 'block';
+                        });
+                    } else {
+                        loadingDiv.style.display = 'none';
+                        authDiv.style.display = 'flex';
+                        appDiv.style.display = 'none';
+                    }
+                } catch (error) {
+                    errorDiv.textContent = 'Auth error: ' + error.message;
+                    errorDiv.style.display = 'block';
+                }
+            }, error => {
+                errorDiv.textContent = 'Auth initialization error: ' + error.message;
+                errorDiv.style.display = 'block';
                 loadingDiv.style.display = 'none';
                 authDiv.style.display = 'flex';
-                appDiv.style.display = 'none';
-            }
-        });
-
-        googleLoginButton.addEventListener('click', () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(error => {
-                alert('Login failed: ' + error.message);
             });
-        });
 
-        logoutButton.addEventListener('click', logout);
-
-        vitalsForm.addEventListener('submit', e => {
-            e.preventDefault();
-            const systolic = parseInt(systolicInput.value) || null;
-            const diastolic = parseInt(diastolicInput.value) || null;
-            const heartrate = parseInt(heartrateInput.value) || null;
-            const oxygen = parseInt(oxygenInput.value) || null;
-            const glucose = parseInt(glucoseInput.value) || null;
-            const timestamp = timestampInput.value ? new Date(timestampInput.value) : new Date();
-
-            if (!validateInputs(systolic, diastolic, heartrate, oxygen, glucose)) {
-                alert('Please enter valid values: Systolic (0-300), Diastolic (0-200), Heart Rate (0-200), Oxygen (0-100), Glucose (0-500).');
-                return;
-            }
-
-            db.collection('vitals').add({
-                userId: currentUserId,
-                patient: patientSelect.value,
-                systolic,
-                diastolic,
-                heartrate,
-                oxygen,
-                glucose,
-                timestamp: firebase.firestore.Timestamp.fromDate(timestamp)
-            }).then(() => {
-                vitalsForm.reset();
-            }).catch(error => {
-                alert('Error adding vitals: ' + error.message);
+            googleLoginButton.addEventListener('click', () => {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).catch(error => {
+                    errorDiv.textContent = 'Login failed: ' + error.message;
+                    errorDiv.style.display = 'block';
+                });
             });
-        });
 
-        updateBtn.addEventListener('click', () => {
-            const systolic = parseInt(systolicInput.value) || null;
-            const diastolic = parseInt(diastolicInput.value) || null;
-            const heartrate = parseInt(heartrateInput.value) || null;
-            const oxygen = parseInt(oxygenInput.value) || null;
-            const glucose = parseInt(glucoseInput.value) || null;
-            const timestamp = timestampInput.value ? new Date(timestampInput.value) : new Date();
+            logoutButton.addEventListener('click', logout);
 
-            if (!validateInputs(systolic, diastolic, heartrate, oxygen, glucose)) {
-                alert('Please enter valid values: Systolic (0-300), Diastolic (0-200), Heart Rate (0-200), Oxygen (0-100), Glucose (0-500).');
-                return;
-            }
+            vitalsForm.addEventListener('submit', e => {
+                e.preventDefault();
+                const systolic = parseInt(systolicInput.value) || null;
+                const diastolic = parseInt(diastolicInput.value) || null;
+                const heartrate = parseInt(heartrateInput.value) || null;
+                const oxygen = parseInt(oxygenInput.value) || null;
+                const glucose = parseInt(glucoseInput.value) || null;
+                const timestamp = new Date(timestampInput.value);
 
-            db.collection('vitals').doc(docIdToEdit).update({
-                patient: patientSelect.value,
-                systolic,
-                diastolic,
-                heartrate,
-                oxygen,
-                glucose,
-                timestamp: firebase.firestore.Timestamp.fromDate(timestamp)
-            }).then(() => {
+                if (!validateInputs(systolic, diastolic, heartrate, oxygen, glucose)) {
+                    errorDiv.textContent = 'Invalid values: Systolic (0-300), Diastolic (0-200), Heart Rate (0-200), Oxygen (0-100), Glucose (0-500).';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                db.collection('vitals').add({
+                    userId: currentUserId,
+                    patient: patientSelect.value,
+                    systolic,
+                    diastolic,
+                    heartrate,
+                    oxygen,
+                    glucose,
+                    timestamp: firebase.firestore.Timestamp.fromDate(timestamp)
+                }).then(() => {
+                    vitalsForm.reset();
+                    errorDiv.style.display = 'none';
+                }).catch(error => {
+                    errorDiv.textContent = 'Error adding vitals: ' + error.message;
+                    errorDiv.style.display = 'block';
+                });
+            });
+
+            updateBtn.addEventListener('click', () => {
+                const systolic = parseInt(systolicInput.value) || null;
+                const diastolic = parseInt(diastolicInput.value) || null;
+                const heartrate = parseInt(heartrateInput.value) || null;
+                const oxygen = parseInt(oxygenInput.value) || null;
+                const glucose = parseInt(glucoseInput.value) || null;
+                const timestamp = new Date(timestampInput.value);
+
+                if (!validateInputs(systolic, diastolic, heartrate, oxygen, glucose)) {
+                    errorDiv.textContent = 'Invalid values: Systolic (0-300), Diastolic (0-200), Heart Rate (0-200), Oxygen (0-100), Glucose (0-500).';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                db.collection('vitals').doc(docIdToEdit).update({
+                    patient: patientSelect.value,
+                    systolic,
+                    diastolic,
+                    heartrate,
+                    oxygen,
+                    glucose,
+                    timestamp: firebase.firestore.Timestamp.fromDate(timestamp)
+                }).then(() => {
+                    vitalsForm.reset();
+                    submitBtn.style.display = 'block';
+                    updateBtn.style.display = 'none';
+                    cancelEditBtn.style.display = 'none';
+                    docIdToEdit = null;
+                    errorDiv.style.display = 'none';
+                }).catch(error => {
+                    errorDiv.textContent = 'Error updating vitals: ' + error.message;
+                    errorDiv.style.display = 'block';
+                });
+            });
+
+            cancelEditBtn.addEventListener('click', () => {
                 vitalsForm.reset();
                 submitBtn.style.display = 'block';
                 updateBtn.style.display = 'none';
                 cancelEditBtn.style.display = 'none';
                 docIdToEdit = null;
-            }).catch(error => {
-                alert('Error updating vitals: ' + error.message);
+                errorDiv.style.display = 'none';
             });
-        });
 
-        cancelEditBtn.addEventListener('click', () => {
-            vitalsForm.reset();
-            submitBtn.style.display = 'block';
-            updateBtn.style.display = 'none';
-            cancelEditBtn.style.display = 'none';
-            docIdToEdit = null;
-        });
+            confirmYesBtn.addEventListener('click', () => {
+                db.collection('vitals').doc(docIdToDelete).delete().then(() => {
+                    confirmModal.style.display = 'none';
+                    docIdToDelete = null;
+                    errorDiv.style.display = 'none';
+                }).catch(error => {
+                    errorDiv.textContent = 'Error deleting vital: ' + error.message;
+                    errorDiv.style.display = 'block';
+                });
+            });
 
-        confirmYesBtn.addEventListener('click', () => {
-            db.collection('vitals').doc(docIdToDelete).delete().then(() => {
+            confirmNoBtn.addEventListener('click', () => {
                 confirmModal.style.display = 'none';
                 docIdToDelete = null;
-            }).catch(error => {
-                alert('Error deleting vital: ' + error.message);
+                errorDiv.style.display = 'none';
             });
-        });
 
-        confirmNoBtn.addEventListener('click', () => {
-            confirmModal.style.display = 'none';
-            docIdToDelete = null;
-        });
+            downloadPdfButton.addEventListener('click', () => {
+                const startDate = dateRangeStart.value ? new Date(dateRangeStart.value) : null;
+                const endDate = dateRangeEnd.value ? new Date(dateRangeEnd.value) : null;
+                let query = db.collection('vitals').where('userId', '==', currentUserId).orderBy('timestamp', 'desc');
 
-        downloadPdfButton.addEventListener('click', () => {
-            const startDate = dateRangeStart.value ? new Date(dateRangeStart.value) : null;
-            const endDate = dateRangeEnd.value ? new Date(dateRangeEnd.value) : null;
-            let query = db.collection('vitals').where('userId', '==', currentUserId).orderBy('timestamp', 'desc');
+                if (startDate) {
+                    query = query.where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startDate));
+                }
+                if (endDate) {
+                    const endDateAdjusted = new Date(endDate);
+                    endDateAdjusted.setHours(23, 59, 59, 999);
+                    query = query.where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endDateAdjusted));
+                }
 
-            if (startDate) {
-                query = query.where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startDate));
-            }
-            if (endDate) {
-                const endDateAdjusted = new Date(endDate);
-                endDateAdjusted.setHours(23, 59, 59, 999);
-                query = query.where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endDateAdjusted));
-            }
-
-            query.get().then(snapshot => {
-                const data = [];
-                snapshot.forEach(doc => data.push(doc.data()));
-                generatePDF(data);
-            }).catch(error => {
-                alert('Error generating PDF: ' + error.message);
-                pdfLoadingDiv.style.display = 'none';
+                query.get().then(snapshot => {
+                    const data = [];
+                    snapshot.forEach(doc => data.push(doc.data()));
+                    generatePDF(data);
+                }).catch(error => {
+                    errorDiv.textContent = 'Error generating PDF: ' + error.message;
+                    errorDiv.style.display = 'block';
+                    pdfLoadingDiv.style.display = 'none';
+                });
             });
-        });
+        } catch (error) {
+            document.getElementById('error').textContent = 'Initialization error: ' + error.message;
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+        }
     </script>
 </body>
 </html>
