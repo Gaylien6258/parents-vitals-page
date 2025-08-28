@@ -165,77 +165,108 @@ function updateChart(vitals) {
     });
 }
 
+// Helper function to create a chart image from data
+const generateChartImage = (chartType, data, options, width, height) => {
+    return new Promise((resolve) => {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+        
+        const tempCtx = tempCanvas.getContext('2d');
+        const tempChart = new Chart(tempCtx, {
+            type: chartType,
+            data: data,
+            options: options
+        });
+        
+        // Use a timeout to ensure the chart is rendered
+        setTimeout(() => {
+            const dataURL = tempCanvas.toDataURL('image/png', 1.0);
+            tempChart.destroy();
+            resolve(dataURL);
+        }, 100);
+    });
+};
+
+
 // ---------- PDF Export ----------
-downloadPdfButton.addEventListener('click', () => {
+downloadPdfButton.addEventListener('click', async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
     const patientName = patientNames[patientSelect.value];
     const reportDate = new Date().toLocaleDateString();
 
-    // Add title
+    // Add title and date
     doc.setFontSize(20);
     doc.text(`Vitals Report for ${patientName}`, 10, 20);
-    
-    // Add report date
     doc.setFontSize(12);
     doc.text(`Report Date: ${reportDate}`, 10, 30);
 
-    // Get current chart data
     const chartData = vitalsChart.data;
+    const lastReading = {
+      systolic: chartData.datasets[0].data[chartData.datasets[0].data.length - 1],
+      diastolic: chartData.datasets[1].data[chartData.datasets[1].data.length - 1],
+      heartRate: chartData.datasets[2].data[chartData.datasets[2].data.length - 1],
+      oxygen: chartData.datasets[3].data[chartData.datasets[3].data.length - 1]
+    };
+    
+    // Define chart options for PDF export
+    const chartOptions = {
+        responsive: false,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } }
+    };
+    
+    const radarData = {
+        labels: ['Systolic', 'Diastolic', 'Heart Rate', 'Oxygen'],
+        datasets: [{
+            label: 'Last Reading',
+            data: [lastReading.systolic, lastReading.diastolic, lastReading.heartRate, lastReading.oxygen],
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+        }]
+    };
+    
+    const radarOptions = {
+      responsive: false,
+      maintainAspectRatio: false,
+      elements: { line: { borderWidth: 3 } },
+      scales: {
+          r: {
+              angleLines: { display: false },
+              suggestedMin: 0,
+              suggestedMax: 100,
+              pointLabels: {
+                  font: { size: 10 }
+              }
+          }
+      }
+    };
+    
+    // Generate images for all charts
+    const [lineChartImage, barChartImage, radarChartImage] = await Promise.all([
+        generateChartImage('line', chartData, chartOptions, 600, 300),
+        generateChartImage('bar', chartData, chartOptions, 600, 300),
+        generateChartImage('radar', radarData, radarOptions, 600, 300)
+    ]);
 
-    // Create a new canvas element for the bar chart and append it to the body
-    const barChartCanvas = document.createElement('canvas');
-    barChartCanvas.width = 600;
-    barChartCanvas.height = 300;
-    document.body.appendChild(barChartCanvas);
+    // Add charts to PDF
+    doc.addImage(lineChartImage, 'PNG', 15, 40, 180, 90);
+    doc.addImage(barChartImage, 'PNG', 15, 140, 180, 90);
+    doc.addImage(radarChartImage, 'PNG', 15, 240, 180, 90);
     
-    const barChartCtx = barChartCanvas.getContext('2d');
+    doc.addPage();
+    let y = 10;
     
-    // Create the bar chart instance
-    new Chart(barChartCtx, {
-        type: 'bar',
-        data: {
-            labels: chartData.labels,
-            datasets: [
-                { label: 'Systolic', data: chartData.datasets[0].data, backgroundColor: 'rgba(255, 99, 132, 0.5)' },
-                { label: 'Diastolic', data: chartData.datasets[1].data, backgroundColor: 'rgba(54, 162, 235, 0.5)' },
-                { label: 'Heart Rate', data: chartData.datasets[2].data, backgroundColor: 'rgba(75, 192, 192, 0.5)' },
-                { label: 'Oxygen', data: chartData.datasets[3].data, backgroundColor: 'rgba(255, 159, 64, 0.5)' }
-            ]
-        },
-        options: {
-            responsive: false, // Set to false for PDF export
-            maintainAspectRatio: false, // Set to false for PDF export
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-    // Add line chart to PDF
-    const lineChartCanvas = document.getElementById('vitals-chart');
-    const lineChartDataURL = lineChartCanvas.toDataURL("image/png", 1.0);
-    doc.addImage(lineChartDataURL, 'PNG', 15, 40, 180, 90);
-    
-    // Add bar chart to PDF
-    const barChartDataURL = barChartCanvas.toDataURL("image/png", 1.0);
-    doc.addImage(barChartDataURL, 'PNG', 15, 140, 180, 90);
-
-    // Remove the temporary canvas from the DOM
-    document.body.removeChild(barChartCanvas);
-    
-    // Add readings list
     doc.setFontSize(16);
-    doc.text("Recent Readings:", 10, 245);
+    doc.text("Recent Readings:", 10, y);
     doc.setFontSize(12);
 
-    let y = 255;
+    y += 10;
     const lis = vitalsList.querySelectorAll('li');
     lis.forEach(li => {
-        // Extract and format text from list item
         const text = li.textContent.replace('Patient: Mom, ', '').replace('Patient: Dad, ', '').replace('Delete', '').trim();
         doc.text(text, 10, y);
         y += 7;
