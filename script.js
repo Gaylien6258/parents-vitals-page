@@ -39,23 +39,13 @@ const confirmMessage = document.getElementById('confirm-message');
 const confirmYesBtn = document.getElementById('confirm-yes-btn');
 const confirmNoBtn = document.getElementById('confirm-no-btn');
 
+// New DOM element for the patient filter dropdown
+const filterPatientSelect = document.getElementById('filter-patient-select');
+
 let docIdToDelete = null;
 let currentUserId = null; // Variable to store the current user's UID
 
 // ---------- Auth Functions ----------
-// We will remove these functions as they are no longer needed
-// function signup(email, password) {
-//     auth.createUserWithEmailAndPassword(email, password)
-//         .then(userCredential => console.log("Signed up:", userCredential.user.email))
-//         .catch(error => alert("Sign up failed: " + error.message));
-// }
-
-// function login(email, password) {
-//     auth.signInWithEmailAndPassword(email, password)
-//         .then(userCredential => console.log("Logged in:", userCredential.user.email))
-//         .catch(error => alert("Login failed: " + error.message));
-// }
-
 function logout() {
     auth.signOut()
         .then(() => console.log("User logged out"))
@@ -86,7 +76,8 @@ async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
             timestamp: new Date()
         });
         console.log("Vitals added for", patient);
-        displayVitalSigns();
+        // After adding, refresh the display for the patient currently being viewed
+        displayVitalSigns(filterPatientSelect.value);
     } catch (e) {
         console.error("Error adding vitals:", e);
     }
@@ -101,22 +92,30 @@ async function deleteVitalSign(docId) {
     try {
         await db.collection("users").doc(currentUserId).collection("vitals").doc(docId).delete();
         console.log("Document successfully deleted!");
-        displayVitalSigns(); 
+        // After deleting, refresh the display for the patient currently being viewed
+        displayVitalSigns(filterPatientSelect.value); 
     } catch (error) {
         console.error("Error removing document: ", error);
     }
 }
 
-// Function to fetch and display vital signs from Firestore
-async function displayVitalSigns() {
+// Function to fetch and display vital signs from Firestore with optional filtering
+async function displayVitalSigns(patientToFilter) {
     if (!currentUserId) {
         console.error("No user logged in. Cannot display vitals.");
         return;
     }
     vitalsList.innerHTML = '';
     const vitals = [];
-    // Fetch only the data for the current user
-    const querySnapshot = await db.collection("users").doc(currentUserId).collection("vitals").orderBy("timestamp", "desc").get();
+    
+    let vitalsQuery = db.collection("users").doc(currentUserId).collection("vitals");
+
+    // If a patient is selected, add a filter to the query
+    if (patientToFilter) {
+        vitalsQuery = vitalsQuery.where("patient_name", "==", patientToFilter);
+    }
+
+    const querySnapshot = await vitalsQuery.orderBy("timestamp", "desc").get();
     
     querySnapshot.forEach(doc => {
         const data = doc.data();
@@ -187,19 +186,6 @@ downloadPdfButton.addEventListener('click', () => {
 });
 
 // ---------- Event Listeners ----------
-// We will comment out the email/password event listeners
-// document.getElementById('signup-button').addEventListener('click', () => {
-//     const email = document.getElementById('email').value;
-//     const password = document.getElementById('password').value;
-//     signup(email, password);
-// });
-
-// document.getElementById('login-button').addEventListener('click', () => {
-//     const email = document.getElementById('email').value;
-//     const password = document.getElementById('password').value;
-//     login(email, password);
-// });
-
 logoutButton.addEventListener('click', logout);
 
 vitalsForm.addEventListener('submit', (e) => {
@@ -235,6 +221,11 @@ confirmNoBtn.addEventListener('click', () => {
     docIdToDelete = null;
 });
 
+// Event listener for the new filter dropdown
+filterPatientSelect.addEventListener('change', (e) => {
+    displayVitalSigns(e.target.value);
+});
+
 // ---------- Auth State Listener ----------
 auth.onAuthStateChanged(user => {
     console.log("Auth state changed:", user);
@@ -244,7 +235,8 @@ auth.onAuthStateChanged(user => {
         currentUserId = user.uid;
         authDiv.style.display = "none";
         appDiv.style.display = "block";
-        displayVitalSigns();
+        // Display vitals for the initially selected patient
+        displayVitalSigns(filterPatientSelect.value);
     } else {
         currentUserId = null;
         authDiv.style.display = "block";
