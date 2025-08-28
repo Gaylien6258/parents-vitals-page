@@ -42,6 +42,12 @@ const confirmNoBtn = document.getElementById('confirm-no-btn');
 let docIdToDelete = null;
 let currentUserId = null; // Variable to store the current user's UID
 
+// ---------- Patient Name Mapping ----------
+const patientNames = {
+    "Mom": "Susan",
+    "Dad": "Gary"
+};
+
 // ---------- Auth Functions ----------
 function logout() {
     auth.signOut()
@@ -90,7 +96,7 @@ async function deleteVitalSign(docId) {
         await db.collection("users").doc(currentUserId).collection("vitals").doc(docId).delete();
         console.log("Document successfully deleted!");
         // After deleting, refresh the display for the patient currently being viewed
-        displayVitalSigns(patientSelect.value); 
+        displayVitalSigns(patientSelect.value);
     } catch (error) {
         console.error("Error removing document: ", error);
     }
@@ -163,23 +169,38 @@ function updateChart(vitals) {
 downloadPdfButton.addEventListener('click', () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.text("Parental Vitals Report", 10, 10);
+    
+    const patientName = patientNames[patientSelect.value];
+    const reportDate = new Date().toLocaleDateString();
 
-    // List vitals
-    let y = 20;
+    // Add title
+    doc.setFontSize(20);
+    doc.text(`Vitals Report for ${patientName}`, 10, 20);
+    
+    // Add report date
+    doc.setFontSize(12);
+    doc.text(`Report Date: ${reportDate}`, 10, 30);
+
+    // Add chart
+    const chartCanvas = document.getElementById('vitals-chart');
+    const chartDataURL = chartCanvas.toDataURL("image/png", 1.0);
+    doc.addImage(chartDataURL, 'PNG', 15, 40, 180, 90);
+    
+    // Add readings list
+    doc.setFontSize(16);
+    doc.text("Recent Readings:", 10, 145);
+    doc.setFontSize(12);
+
+    let y = 155;
     const lis = vitalsList.querySelectorAll('li');
     lis.forEach(li => {
-        doc.text(li.textContent, 10, y);
+        // Extract and format text from list item
+        const text = li.textContent.replace('Patient: Mom, ', '').replace('Patient: Dad, ', '').replace('Delete', '').trim();
+        doc.text(text, 10, y);
         y += 7;
     });
 
-    // Chart
-    const chartCanvas = document.getElementById('vitals-chart');
-    const chartDataURL = chartCanvas.toDataURL("image/png", 1.0);
-    doc.addPage();
-    doc.addImage(chartDataURL, 'PNG', 10, 20, 180, 100);
-
-    doc.save("parental_vitals_report.pdf");
+    doc.save(`vitals_report_${patientName}.pdf`);
 });
 
 // ---------- Event Listeners ----------
