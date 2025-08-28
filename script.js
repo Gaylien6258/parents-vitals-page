@@ -78,6 +78,19 @@ async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
     }
 }
 
+// Function to delete a vital sign entry from Firestore
+async function deleteVitalSign(docId) {
+    try {
+        await db.collection("vitals").doc(docId).delete();
+        console.log("Document successfully deleted!");
+        // Refresh the list and chart after deletion
+        displayVitalSigns(); 
+    } catch (error) {
+        console.error("Error removing document: ", error);
+    }
+}
+
+// Function to fetch and display vital signs from Firestore
 async function displayVitalSigns() {
     vitalsList.innerHTML = '';
     const vitals = [];
@@ -178,6 +191,19 @@ vitalsForm.addEventListener('submit', (e) => {
     );
     vitalsForm.reset();
 });
+
+// New Event Listener for Delete Buttons
+vitalsList.addEventListener('click', (e) => {
+    // Check if the clicked element has the 'delete-btn' class
+    if (e.target.classList.contains('delete-btn')) {
+        const docId = e.target.getAttribute('data-id');
+        // Ask for confirmation before deleting
+        if (confirm('Are you sure you want to delete this vital sign entry?')) {
+            deleteVitalSign(docId);
+        }
+    }
+});
+
 
 // ---------- Auth State Listener ----------
 auth.onAuthStateChanged(user => {
