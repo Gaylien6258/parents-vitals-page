@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parental Vitals Tracker</title>
+    <title>Parental Vitals Tracker - Test</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -25,57 +25,15 @@
     <!-- Main App -->
     <div id="app" style="display:none;">
         <button id="logout-button">Log Out</button>
-        <h1>Parental Vitals Tracker</h1>
-        <p>Please enter the latest vital signs below.</p>
-        <form id="vitals-form">
-            <div class="form-group">
-                <label for="patient-select">Patient:</label>
-                <select id="patient-select">
-                    <option value="mother">Mother</option>
-                    <option value="father">Father</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="systolic">Systolic Pressure (mmHg):</label>
-                <input type="number" id="systolic" required>
-            </div>
-            <div class="form-group">
-                <label for="diastolic">Diastolic Pressure (mmHg):</label>
-                <input type="number" id="diastolic" required>
-            </div>
-            <div class="form-group">
-                <label for="heartrate">Heart Rate (BPM):</label>
-                <input type="number" id="heartrate" required>
-            </div>
-            <div class="form-group">
-                <label for="oxygen">Oxygen Saturation (%):</label>
-                <input type="number" id="oxygen" required>
-            </div>
-            <button type="submit">Add Reading</button>
-        </form>
-
-        <div id="data-display">
-            <h2>Recent Readings</h2>
-            <ul id="vitals-list"></ul>
-        </div>
-
-        <div id="chart-container">
-            <h2>Vitals Over Time</h2>
-            <canvas id="vitals-chart"></canvas>
-            <button id="download-pdf">Download PDF Report</button>
-        </div>
+        <h1>Welcome to Parental Vitals Tracker</h1>
+        <p>You are logged in. Main app will be available once test passes.</p>
     </div>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
-    <!-- Other libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Your main JS -->
+    <!-- Your minimal test JS -->
     <script src="script.js"></script>
 </body>
 </html>
