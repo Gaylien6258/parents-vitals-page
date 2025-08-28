@@ -25,7 +25,7 @@ const vitalsForm = document.getElementById('vitals-form');
 const patientSelect = document.getElementById('patient-select');
 const systolicInput = document.getElementById('systolic');
 const diastolicInput = document.getElementById('diastolic');
-const heartrateInput = document.getElementById('heartrate');
+const heartrateInput = document('heartrate');
 const oxygenInput = document.getElementById('oxygen');
 const vitalsList = document.getElementById('vitals-list');
 const downloadPdfButton = document.getElementById('download-pdf');
@@ -96,7 +96,7 @@ async function deleteVitalSign(docId) {
         await db.collection("users").doc(currentUserId).collection("vitals").doc(docId).delete();
         console.log("Document successfully deleted!");
         // After deleting, refresh the display for the patient currently being viewed
-        displayVitalSigns(patientSelect.value);
+        displayVitalSigns(patientSelect.value); 
     } catch (error) {
         console.error("Error removing document: ", error);
     }
@@ -181,17 +181,50 @@ downloadPdfButton.addEventListener('click', () => {
     doc.setFontSize(12);
     doc.text(`Report Date: ${reportDate}`, 10, 30);
 
-    // Add chart
-    const chartCanvas = document.getElementById('vitals-chart');
-    const chartDataURL = chartCanvas.toDataURL("image/png", 1.0);
-    doc.addImage(chartDataURL, 'PNG', 15, 40, 180, 90);
+    // Get current chart data
+    const chartData = vitalsChart.data;
+
+    // Create a new canvas element for the bar chart
+    const barChartCanvas = document.createElement('canvas');
+    const barChartCtx = barChartCanvas.getContext('2d');
+    
+    // Create the bar chart instance
+    new Chart(barChartCtx, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+                { label: 'Systolic', data: chartData.datasets[0].data, backgroundColor: 'rgba(255, 99, 132, 0.5)' },
+                { label: 'Diastolic', data: chartData.datasets[1].data, backgroundColor: 'rgba(54, 162, 235, 0.5)' },
+                { label: 'Heart Rate', data: chartData.datasets[2].data, backgroundColor: 'rgba(75, 192, 192, 0.5)' },
+                { label: 'Oxygen', data: chartData.datasets[3].data, backgroundColor: 'rgba(255, 159, 64, 0.5)' }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Add line chart to PDF
+    const lineChartCanvas = document.getElementById('vitals-chart');
+    const lineChartDataURL = lineChartCanvas.toDataURL("image/png", 1.0);
+    doc.addImage(lineChartDataURL, 'PNG', 15, 40, 180, 90);
+    
+    // Add bar chart to PDF
+    const barChartDataURL = barChartCanvas.toDataURL("image/png", 1.0);
+    doc.addImage(barChartDataURL, 'PNG', 15, 140, 180, 90);
     
     // Add readings list
     doc.setFontSize(16);
-    doc.text("Recent Readings:", 10, 145);
+    doc.text("Recent Readings:", 10, 245);
     doc.setFontSize(12);
 
-    let y = 155;
+    let y = 255;
     const lis = vitalsList.querySelectorAll('li');
     lis.forEach(li => {
         // Extract and format text from list item
