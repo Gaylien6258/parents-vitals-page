@@ -28,7 +28,6 @@
         <div class="auth-card">
             <h1 class="text-3xl font-bold mb-6 text-center">Login</h1>
             
-            <!-- We are removing the email/password fields as requested -->
             <button id="google-login-button" class="google-btn">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/2048px-Google_%22G%22_logo.svg.png" alt="Google logo" class="w-5 h-5 mr-2">
                 Sign in with Google
@@ -74,7 +73,16 @@
             </div>
 
             <div class="data-view-card">
-                <h2 class="text-xl font-semibold mb-4">Vitals History</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Vitals History</h2>
+                    <div class="flex items-center">
+                        <label for="filter-patient-select" class="mr-2 font-medium text-gray-700">Filter:</label>
+                        <select id="filter-patient-select" class="p-2 rounded-md border border-gray-300">
+                            <option value="Mom">Mom</option>
+                            <option value="Dad">Dad</option>
+                        </select>
+                    </div>
+                </div>
                 <ul id="vitals-list"></ul>
                 <div class="chart-container">
                     <canvas id="vitals-chart"></canvas>
