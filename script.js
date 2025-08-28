@@ -196,13 +196,8 @@ downloadPdfButton.addEventListener('click', async () => {
     
     const patientName = patientNames[patientSelect.value];
     const reportDate = new Date().toLocaleDateString();
-
-    // Add title and date
-    doc.setFontSize(20);
-    doc.text(`Vitals Report for ${patientName}`, 10, 20);
-    doc.setFontSize(12);
-    doc.text(`Report Date: ${reportDate}`, 10, 30);
-
+    
+    // Get current chart data and last reading for the radar chart
     const chartData = vitalsChart.data;
     const lastReading = {
       systolic: chartData.datasets[0].data[chartData.datasets[0].data.length - 1],
@@ -211,11 +206,33 @@ downloadPdfButton.addEventListener('click', async () => {
       oxygen: chartData.datasets[3].data[chartData.datasets[3].data.length - 1]
     };
     
+    // Page 1: Line Chart
+    doc.setFontSize(20);
+    doc.text(`Vitals Report for ${patientName}`, 10, 20);
+    doc.setFontSize(12);
+    doc.text(`Report Date: ${reportDate}`, 10, 30);
+    
+    const lineChartImage = await generateChartImage('line', chartData, { responsive: false, maintainAspectRatio: false }, 600, 300);
+    doc.addImage(lineChartImage, 'PNG', 15, 40, 180, 90);
+    
+    // Page 2: Summary Charts and Readings
+    doc.addPage();
+    
     // Define chart options for PDF export
     const chartOptions = {
         responsive: false,
         maintainAspectRatio: false,
         scales: { y: { beginAtZero: true } }
+    };
+
+    const barChartData = {
+        labels: chartData.labels,
+        datasets: [
+            { label: 'Systolic', data: chartData.datasets[0].data, backgroundColor: 'rgba(255, 99, 132, 0.5)' },
+            { label: 'Diastolic', data: chartData.datasets[1].data, backgroundColor: 'rgba(54, 162, 235, 0.5)' },
+            { label: 'Heart Rate', data: chartData.datasets[2].data, backgroundColor: 'rgba(75, 192, 192, 0.5)' },
+            { label: 'Oxygen', data: chartData.datasets[3].data, backgroundColor: 'rgba(255, 159, 64, 0.5)' }
+        ]
     };
     
     const radarData = {
@@ -245,26 +262,23 @@ downloadPdfButton.addEventListener('click', async () => {
       }
     };
     
-    // Generate images for all charts
-    const [lineChartImage, barChartImage, radarChartImage] = await Promise.all([
-        generateChartImage('line', chartData, chartOptions, 600, 300),
-        generateChartImage('bar', chartData, chartOptions, 600, 300),
+    // Generate images for the second page charts
+    const [barChartImage, radarChartImage] = await Promise.all([
+        generateChartImage('bar', barChartData, chartOptions, 600, 300),
         generateChartImage('radar', radarData, radarOptions, 600, 300)
     ]);
 
-    // Add charts to PDF
-    doc.addImage(lineChartImage, 'PNG', 15, 40, 180, 90);
-    doc.addImage(barChartImage, 'PNG', 15, 140, 180, 90);
-    doc.addImage(radarChartImage, 'PNG', 15, 240, 180, 90);
-    
-    doc.addPage();
-    let y = 10;
-    
+    // Add charts to PDF on the new page
     doc.setFontSize(16);
-    doc.text("Recent Readings:", 10, y);
-    doc.setFontSize(12);
+    doc.text("Bar Chart Analysis:", 10, 20);
+    doc.addImage(barChartImage, 'PNG', 15, 30, 180, 90);
 
-    y += 10;
+    doc.text("Radar Chart Analysis:", 10, 130);
+    doc.addImage(radarChartImage, 'PNG', 15, 140, 180, 90);
+
+    doc.text("Recent Readings:", 10, 240);
+    doc.setFontSize(12);
+    let y = 250;
     const lis = vitalsList.querySelectorAll('li');
     lis.forEach(li => {
         const text = li.textContent.replace('Patient: Mom, ', '').replace('Patient: Dad, ', '').replace('Delete', '').trim();
