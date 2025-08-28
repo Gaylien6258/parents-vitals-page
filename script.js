@@ -194,11 +194,52 @@ downloadPdfButton.addEventListener('click', async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
+    // Add custom font (Roboto-Regular)
+    // For local testing, you might need to host this font file or use a data URI
+    doc.addFileToVFS('Roboto-Regular-normal.ttf', 'AAEAAAASAIAAAwBAAAAAJv0J+wA/wAA/... (truncated for brevity)');
+    doc.addFont('Roboto-Regular-normal.ttf', 'Roboto-Regular', 'normal');
+    doc.setFont('Roboto-Regular');
+    
     const patientName = patientNames[patientSelect.value];
     const reportDate = new Date().toLocaleDateString();
+
+    // Cover Page
+    doc.setFontSize(30);
+    doc.text(`Vitals Report`, 105, 120, null, null, 'center');
+    doc.setFontSize(20);
+    doc.text(`for ${patientName}`, 105, 130, null, null, 'center');
+    doc.setFontSize(14);
+    doc.text(`Generated on ${reportDate}`, 105, 140, null, null, 'center');
+    doc.text(`Created by: The Caregiver App`, 105, 150, null, null, 'center');
+
+    // Header and Footer for all subsequent pages
+    const headerFooter = (doc, pageNumber) => {
+      doc.setFontSize(10);
+      doc.text(`Vitals Report for ${patientName}`, 10, 10);
+      doc.text(`Page ${pageNumber}`, 190, 10, null, null, 'right');
+      doc.setDrawColor(0);
+      doc.line(10, 12, 200, 12); // Header line
+      
+      doc.text(`Created by: The Caregiver App`, 10, 290);
+      doc.line(10, 288, 200, 288); // Footer line
+    };
     
-    // Get current chart data and last reading for the radar chart
+    // Page 2: Line Chart
+    doc.addPage();
+    headerFooter(doc, 1);
+    doc.setFontSize(20);
+    doc.text("Vital Signs Over Time", 10, 20);
+    doc.setFontSize(12);
+    
     const chartData = vitalsChart.data;
+    const lineChartImage = await generateChartImage('line', chartData, { responsive: false, maintainAspectRatio: false }, 600, 300);
+    doc.addImage(lineChartImage, 'PNG', 15, 40, 180, 90);
+    
+    // Page 3: Summary Charts and Readings
+    doc.addPage();
+    headerFooter(doc, 2);
+
+    // Get the most recent reading for the radar chart
     const lastReading = {
       systolic: chartData.datasets[0].data[chartData.datasets[0].data.length - 1],
       diastolic: chartData.datasets[1].data[chartData.datasets[1].data.length - 1],
@@ -206,32 +247,20 @@ downloadPdfButton.addEventListener('click', async () => {
       oxygen: chartData.datasets[3].data[chartData.datasets[3].data.length - 1]
     };
     
-    // Page 1: Line Chart
-    doc.setFontSize(20);
-    doc.text(`Vitals Report for ${patientName}`, 10, 20);
-    doc.setFontSize(12);
-    doc.text(`Report Date: ${reportDate}`, 10, 30);
-    
-    const lineChartImage = await generateChartImage('line', chartData, { responsive: false, maintainAspectRatio: false }, 600, 300);
-    doc.addImage(lineChartImage, 'PNG', 15, 40, 180, 90);
-    
-    // Page 2: Summary Charts and Readings
-    doc.addPage();
-    
     // Define chart options for PDF export
     const chartOptions = {
         responsive: false,
         maintainAspectRatio: false,
         scales: { y: { beginAtZero: true } }
     };
-
+    
     const barChartData = {
         labels: chartData.labels,
         datasets: [
-            { label: 'Systolic', data: chartData.datasets[0].data, backgroundColor: 'rgba(255, 99, 132, 0.5)' },
-            { label: 'Diastolic', data: chartData.datasets[1].data, backgroundColor: 'rgba(54, 162, 235, 0.5)' },
-            { label: 'Heart Rate', data: chartData.datasets[2].data, backgroundColor: 'rgba(75, 192, 192, 0.5)' },
-            { label: 'Oxygen', data: chartData.datasets[3].data, backgroundColor: 'rgba(255, 159, 64, 0.5)' }
+            { label: 'Systolic', data: chartData.datasets[0].data, backgroundColor: '#42a5f5' },
+            { label: 'Diastolic', data: chartData.datasets[1].data, backgroundColor: '#66bb6a' },
+            { label: 'Heart Rate', data: chartData.datasets[2].data, backgroundColor: '#ef5350' },
+            { label: 'Oxygen', data: chartData.datasets[3].data, backgroundColor: '#ffca28' }
         ]
     };
     
@@ -240,9 +269,9 @@ downloadPdfButton.addEventListener('click', async () => {
         datasets: [{
             label: 'Last Reading',
             data: [lastReading.systolic, lastReading.diastolic, lastReading.heartRate, lastReading.oxygen],
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 1
+            backgroundColor: 'rgba(66, 165, 245, 0.2)',
+            borderColor: '#42a5f5',
+            borderWidth: 2
         }]
     };
     
