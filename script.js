@@ -184,10 +184,12 @@ downloadPdfButton.addEventListener('click', () => {
     // Get current chart data
     const chartData = vitalsChart.data;
 
-    // Create a new canvas element for the bar chart
+    // Create a new canvas element for the bar chart and append it to the body
     const barChartCanvas = document.createElement('canvas');
     barChartCanvas.width = 600;
     barChartCanvas.height = 300;
+    document.body.appendChild(barChartCanvas);
+    
     const barChartCtx = barChartCanvas.getContext('2d');
     
     // Create the bar chart instance
@@ -221,6 +223,9 @@ downloadPdfButton.addEventListener('click', () => {
     // Add bar chart to PDF
     const barChartDataURL = barChartCanvas.toDataURL("image/png", 1.0);
     doc.addImage(barChartDataURL, 'PNG', 15, 140, 180, 90);
+
+    // Remove the temporary canvas from the DOM
+    document.body.removeChild(barChartCanvas);
     
     // Add readings list
     doc.setFontSize(16);
