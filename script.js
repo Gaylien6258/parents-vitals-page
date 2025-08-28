@@ -194,11 +194,10 @@ downloadPdfButton.addEventListener('click', async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Add custom font (Roboto-Regular)
-    // For local testing, you might need to host this font file or use a data URI
-    doc.addFileToVFS('Roboto-Regular-normal.ttf', 'AAEAAAASAIAAAwBAAAAAJv0J+wA/wAA/... (truncated for brevity)');
-    doc.addFont('Roboto-Regular-normal.ttf', 'Roboto-Regular', 'normal');
-    doc.setFont('Roboto-Regular');
+    // The previous code to add a custom font was causing an error
+    // because the font data was incomplete. We have removed it for now.
+    // If you want to add a custom font later, you will need to provide
+    // the full base64-encoded font file data here.
     
     const patientName = patientNames[patientSelect.value];
     const reportDate = new Date().toLocaleDateString();
