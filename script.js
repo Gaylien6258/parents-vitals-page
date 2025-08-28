@@ -30,6 +30,7 @@ const vitalsList = document.getElementById('vitals-list');
 const downloadPdfButton = document.getElementById('download-pdf');
 
 const logoutButton = document.getElementById('logout-button');
+const googleLoginButton = document.getElementById('google-login-button');
 
 // ---------- Auth Functions ----------
 function signup(email, password) {
@@ -49,6 +50,14 @@ function logout() {
         .then(() => console.log("User logged out"))
         .catch(error => console.error("Logout failed:", error));
 }
+
+// ---------- Google Login ----------
+googleLoginButton.addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then(result => console.log("Google login successful:", result.user.email))
+        .catch(error => alert("Google login failed: " + error.message));
+});
 
 // ---------- Vitals Functions ----------
 async function addVitalSigns(patient, systolic, diastolic, heartrate, oxygen) {
@@ -110,7 +119,7 @@ function updateChart(vitals) {
 }
 
 // ---------- PDF Export ----------
-downloadPdfButton.addEventListener('click', async () => {
+downloadPdfButton.addEventListener('click', () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.text("Parental Vitals Report", 10, 10);
