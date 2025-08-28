@@ -25,7 +25,7 @@ const vitalsForm = document.getElementById('vitals-form');
 const patientSelect = document.getElementById('patient-select');
 const systolicInput = document.getElementById('systolic');
 const diastolicInput = document.getElementById('diastolic');
-const heartrateInput = document.getElementById('heartrate'); // CORRECTED LINE
+const heartrateInput = document.getElementById('heartrate');
 const oxygenInput = document.getElementById('oxygen');
 const vitalsList = document.getElementById('vitals-list');
 const downloadPdfButton = document.getElementById('download-pdf');
@@ -186,6 +186,8 @@ downloadPdfButton.addEventListener('click', () => {
 
     // Create a new canvas element for the bar chart
     const barChartCanvas = document.createElement('canvas');
+    barChartCanvas.width = 600;
+    barChartCanvas.height = 300;
     const barChartCtx = barChartCanvas.getContext('2d');
     
     // Create the bar chart instance
@@ -201,7 +203,8 @@ downloadPdfButton.addEventListener('click', () => {
             ]
         },
         options: {
-            responsive: true,
+            responsive: false, // Set to false for PDF export
+            maintainAspectRatio: false, // Set to false for PDF export
             scales: {
                 y: {
                     beginAtZero: true
