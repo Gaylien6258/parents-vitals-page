@@ -535,24 +535,29 @@
 
         // Helper function to create a chart image from data
         const generateChartImage = (chartType, data, options, width, height) => {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = width;
                 tempCanvas.height = height;
                 
                 const tempCtx = tempCanvas.getContext('2d');
+                
+                // Use a temporary chart instance that we can destroy after rendering
                 const tempChart = new Chart(tempCtx, {
                     type: chartType,
                     data: data,
-                    options: options
+                    options: {
+                        ...options,
+                        animation: {
+                            onComplete: () => {
+                                const dataURL = tempCanvas.toDataURL('image/png', 1.0);
+                                tempChart.destroy();
+                                resolve(dataURL);
+                            },
+                            onProgress: () => {} // Required for onComplete to fire
+                        }
+                    }
                 });
-                
-                // Use a timeout to ensure the chart is rendered
-                setTimeout(() => {
-                    const dataURL = tempCanvas.toDataURL('image/png', 1.0);
-                    tempChart.destroy();
-                    resolve(dataURL);
-                }, 100);
             });
         };
 
@@ -595,6 +600,12 @@
             doc.setFontSize(12);
             
             const vitalsData = await getVitalsData();
+            if (vitalsData.length === 0) {
+                doc.text("No data available to generate charts.", 10, 40);
+                doc.save(`vitals_report_${patientName}.pdf`);
+                return;
+            }
+
             const vitals = vitalsData.sort((a, b) => (a.timestamp.seconds || a.timestamp) - (b.timestamp.seconds || b.timestamp));
             const chartData = {
               labels: vitals.map(v => new Date((v.timestamp.seconds || v.timestamp) * 1000).toLocaleString()),
@@ -613,43 +624,42 @@
             doc.addPage();
             headerFooter(doc, 2);
 
-            if (vitals.length > 0) {
-              const lastReading = {
+            const lastReading = {
                 systolic: vitals[vitals.length - 1].systolic,
                 diastolic: vitals[vitals.length - 1].diastolic,
                 heartRate: vitals[vitals.length - 1].heart_rate,
                 oxygen: vitals[vitals.length - 1].oxygen_saturation
-              };
+            };
               
-              // Define chart options for PDF export
-              const chartOptions = {
-                  responsive: false,
-                  maintainAspectRatio: false,
-                  scales: { y: { beginAtZero: true } }
-              };
+            // Define chart options for PDF export
+            const chartOptions = {
+                responsive: false,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            };
               
-              const barChartData = {
-                  labels: chartData.labels,
-                  datasets: [
-                      { label: 'Systolic', data: chartData.datasets[0].data, backgroundColor: '#42a5f5' },
-                      { label: 'Diastolic', data: chartData.datasets[1].data, backgroundColor: '#66bb6a' },
-                      { label: 'Heart Rate', data: chartData.datasets[2].data, backgroundColor: '#ef5350' },
-                      { label: 'Oxygen', data: chartData.datasets[3].data, backgroundColor: '#ffca28' }
-                  ]
-              };
+            const barChartData = {
+                labels: chartData.labels,
+                datasets: [
+                    { label: 'Systolic', data: chartData.datasets[0].data, backgroundColor: '#42a5f5' },
+                    { label: 'Diastolic', data: chartData.datasets[1].data, backgroundColor: '#66bb6a' },
+                    { label: 'Heart Rate', data: chartData.datasets[2].data, backgroundColor: '#ef5350' },
+                    { label: 'Oxygen', data: chartData.datasets[3].data, backgroundColor: '#ffca28' }
+                ]
+            };
               
-              const radarData = {
-                  labels: ['Systolic', 'Diastolic', 'Heart Rate', 'Oxygen'],
-                  datasets: [{
-                      label: 'Last Reading',
-                      data: [lastReading.systolic, lastReading.diastolic, lastReading.heartRate, lastReading.oxygen],
-                      backgroundColor: 'rgba(66, 165, 245, 0.2)',
-                      borderColor: '#42a5f5',
-                      borderWidth: 2
-                  }]
-              };
+            const radarData = {
+                labels: ['Systolic', 'Diastolic', 'Heart Rate', 'Oxygen'],
+                datasets: [{
+                    label: 'Last Reading',
+                    data: [lastReading.systolic, lastReading.diastolic, lastReading.heartRate, lastReading.oxygen],
+                    backgroundColor: 'rgba(66, 165, 245, 0.2)',
+                    borderColor: '#42a5f5',
+                    borderWidth: 2
+                }]
+            };
               
-              const radarOptions = {
+            const radarOptions = {
                 responsive: false,
                 maintainAspectRatio: false,
                 elements: { line: { borderWidth: 3 } },
@@ -663,30 +673,40 @@
                         }
                     }
                 }
-              };
+            };
               
-              // Generate images for the second page charts
-              const [barChartImage, radarChartImage] = await Promise.all([
-                  generateChartImage('bar', barChartData, chartOptions, 600, 300),
-                  generateChartImage('radar', radarData, radarOptions, 600, 300)
-              ]);
+            // Generate images for the second page charts
+            const [barChartImage, radarChartImage] = await Promise.all([
+                generateChartImage('bar', barChartData, chartOptions, 600, 300),
+                generateChartImage('radar', radarData, radarOptions, 600, 300)
+            ]);
 
-              // Add charts to PDF on the new page
-              doc.setFontSize(16);
-              doc.text("Bar Chart Analysis:", 10, 20);
-              doc.addImage(barChartImage, 'PNG', 15, 30, 180, 90);
+            // Add charts to PDF on the new page
+            doc.setFontSize(16);
+            doc.text("Bar Chart Analysis:", 10, 20);
+            doc.addImage(barChartImage, 'PNG', 15, 30, 180, 90);
 
-              doc.text("Radar Chart Analysis:", 10, 130);
-              doc.addImage(radarChartImage, 'PNG', 15, 140, 180, 90);
-            }
-
-
-            doc.text("Recent Readings:", 10, 240);
+            doc.text("Radar Chart Analysis:", 10, 130);
+            doc.addImage(radarChartImage, 'PNG', 15, 140, 180, 90);
+            
+            // Add list of readings with automatic page breaks
+            let currentPage = 2;
+            let y = 240;
             doc.setFontSize(12);
-            let y = 250;
-            const lis = vitalsList.querySelectorAll('li');
-            lis.forEach(li => {
-                const text = li.textContent.replace('Patient: Mom, ', '').replace('Patient: Dad, ', '').replace('Delete', '').replace('Edit', '').trim();
+
+            const maxLinesPerPage = 30;
+            let lineCount = 0;
+            
+            vitals.forEach(reading => {
+                const text = `Patient: ${reading.patient_name}, Systolic: ${reading.systolic}, Diastolic: ${reading.diastolic}, Heart Rate: ${reading.heart_rate}, Oxygen: ${reading.oxygen_saturation} - ${new Date((reading.timestamp.seconds || reading.timestamp) * 1000).toLocaleString()}`;
+                
+                if (y > 270) { // Check for new page before adding text
+                    doc.addPage();
+                    currentPage++;
+                    headerFooter(doc, currentPage);
+                    y = 20; // Reset Y position for new page
+                }
+                
                 doc.text(text, 10, y);
                 y += 7;
             });
@@ -787,13 +807,13 @@
                 appDiv.style.display = "block";
                 displayVitalSigns(patientSelect.value);
             } else {
-                // If no user is logged in, sign in anonymously to move past the loading screen
-                firebase.auth().signInAnonymously().catch(error => {
-                    console.error("Anonymous login failed:", error);
-                    loadingDiv.textContent = "Failed to load app. Please try again.";
-                });
+                currentUserId = null;
+                loadingDiv.style.display = "none";
+                authDiv.style.display = "block";
+                appDiv.style.display = "none";
             }
         });
+
     </script>
 </body>
 </html>
