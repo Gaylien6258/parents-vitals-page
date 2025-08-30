@@ -1,312 +1,507 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Vitals Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f3f4f6;
-      margin: 0;
-      padding: 0;
+    :root{
+      --primary:#2563eb; /* blue-600 */
+      --primary-dark:#1d4ed8; /* blue-700 */
+      --danger:#dc2626; /* red-600 */
+      --bg:#f3f4f6; /* gray-100 */
+      --card:#ffffff;
+      --muted:#6b7280; /* gray-500 */
     }
-    header {
-      background: #1f2937;
-      color: white;
-      padding: 1rem;
-      text-align: center;
-    }
-    .container {
-      max-width: 900px;
-      margin: 20px auto;
-      padding: 20px;
-    }
-    .card {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    h2 {
-      margin-top: 0;
-    }
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-width: 140px;
-    }
-    label {
-      font-size: 0.9rem;
-      margin-bottom: 4px;
-    }
-    input, select, button {
-      padding: 8px;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-    button {
-      cursor: pointer;
-      background: #2563eb;
-      color: white;
-      border: none;
-      transition: background 0.2s;
-    }
-    button:hover {
-      background: #1d4ed8;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border: 1px solid #e5e7eb;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background: #f9fafb;
-    }
-    .actions button {
-      margin: 0 2px;
-      background: #6b7280;
-    }
-    .actions button:hover {
-      background: #4b5563;
-    }
-    .filter-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
+    *{box-sizing:border-box}
+    body{font-family:'Roboto',sans-serif;margin:0;background:var(--bg);color:#111827}
+    .screen{display:none}
+    #loading,#pdf-loading,#error{display:flex;min-height:100vh;align-items:center;justify-content:center;font-size:1.2rem}
+    #error{color:var(--danger)}
+    .app{display:block}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border-bottom:1px solid #e5e7eb}
+    .header h1{margin:0;font-size:1.25rem}
+    .logout-btn{background:var(--danger);color:#fff;border:none;border-radius:6px;padding:8px 12px;cursor:pointer}
+    .logout-btn:hover{opacity:.9}
+    .container{max-width:1100px;margin:24px auto;padding:0 16px;display:grid;gap:20px;grid-template-columns:1fr}
+    @media(min-width:900px){.container{grid-template-columns:1fr 1fr}}
+    .card{background:var(--card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:16px}
+    .card h2{margin:0 0 10px 0;font-size:1.1rem}
+    .input-group{margin-bottom:10px}
+    label{display:block;font-weight:700;font-size:.9rem;margin-bottom:4px}
+    input,select,button{font-size:1rem}
+    input,select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff}
+    .btn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 14px;cursor:pointer}
+    .btn:hover{background:var(--primary-dark)}
+    .btn.secondary{background:#3b82f6}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    ul#vitals-list{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto}
+    ul#vitals-list li{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+    .item-left{font-size:.95rem}
+    .item-right button{margin-left:6px;padding:6px 10px;border-radius:6px;border:1px solid transparent;cursor:pointer}
+    .edit-btn{background:#dbeafe;color:#1d4ed8;border-color:#1d4ed8}
+    .edit-btn:hover{background:#1d4ed8;color:#fff}
+    .delete-btn{background:#fee2e2;color:#b91c1c;border-color:#b91c1c}
+    .delete-btn:hover{background:#b91c1c;color:#fff}
+    .auth-card{max-width:380px;margin:80px auto;background:#fff;padding:24px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);text-align:center}
+    .google-btn{width:100%;padding:10px 14px;border-radius:8px;border:1px solid #d1d5db;background:#fff;cursor:pointer}
+    .muted{color:var(--muted);font-size:.9rem}
   </style>
+
+  <!-- Firebase SDKs (loaded globally; code imports as modules below) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js"></script>
+
+  <!-- jsPDF + AutoTable (UMD) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-  <header>
-    <h1>Vitals Tracker</h1>
-  </header>
 
-  <div class="container">
-    <!-- Input Form -->
-    <div class="card">
-      <h2>Add / Edit Vitals</h2>
-      <form id="vitals-form">
-        <div class="row">
+  <!-- Screens -->
+  <div id="loading" class="screen">Loading...</div>
+  <div id="pdf-loading" class="screen" style="display:none;">Generating PDF...</div>
+  <div id="error" class="screen" style="display:none;"></div>
+
+  <div id="auth" class="screen">
+    <div class="auth-card">
+      <h2>Sign in</h2>
+      <p class="muted">Use your Google account to access your vitals.</p>
+      <button id="google-login-button" class="google-btn">Sign in with Google</button>
+    </div>
+  </div>
+
+  <div id="app" class="screen">
+    <div class="header">
+      <h1>Vitals Tracker</h1>
+      <button id="logout-button" class="logout-btn">Logout</button>
+    </div>
+
+    <div class="container">
+      <!-- Entry -->
+      <div class="card">
+        <h2>Record Vitals</h2>
+        <form id="vitals-form" autocomplete="off">
           <div class="input-group">
-            <label for="person">Person</label>
-            <select id="person" required>
-              <option value="">Select</option>
+            <label for="patient-select">Patient</label>
+            <select id="patient-select" required>
               <option value="Mom">Mom</option>
               <option value="Dad">Dad</option>
             </select>
           </div>
-          <div class="input-group">
-            <label for="systolic">Systolic</label>
-            <input type="number" id="systolic" required>
+
+          <div class="row">
+            <div class="input-group" style="flex:1 1 140px;">
+              <label for="systolic">Systolic (mmHg)</label>
+              <input type="number" id="systolic" min="0" max="300" inputmode="numeric">
+            </div>
+            <div class="input-group" style="flex:1 1 140px;">
+              <label for="diastolic">Diastolic (mmHg)</label>
+              <input type="number" id="diastolic" min="0" max="200" inputmode="numeric">
+            </div>
           </div>
-          <div class="input-group">
-            <label for="diastolic">Diastolic</label>
-            <input type="number" id="diastolic" required>
+
+          <div class="row">
+            <div class="input-group" style="flex:1 1 140px;">
+              <label for="heartrate">Heart Rate (bpm)</label>
+              <input type="number" id="heartrate" min="0" max="200" inputmode="numeric">
+            </div>
+            <div class="input-group" style="flex:1 1 140px;">
+              <label for="oxygen">Oxygen (%)</label>
+              <input type="number" id="oxygen" min="0" max="100" inputmode="numeric">
+            </div>
+            <div class="input-group" style="flex:1 1 160px;">
+              <label for="glucose">Glucose (mg/dL)</label>
+              <input type="number" id="glucose" min="0" max="500" inputmode="numeric">
+            </div>
           </div>
-          <div class="input-group">
-            <label for="pulse">Pulse</label>
-            <input type="number" id="pulse" required>
-          </div>
-          <div class="input-group">
-            <label for="oxygen">Oxygen %</label>
-            <input type="number" id="oxygen" required>
-          </div>
+
           <div class="input-group">
             <label for="timestamp-input">Date & Time</label>
             <input type="datetime-local" id="timestamp-input" required>
           </div>
-        </div>
-        <div class="row">
-          <button type="submit" id="submit-btn">Add Vitals</button>
-          <button type="button" id="update-btn" style="display:none;">Update</button>
-          <button type="button" id="cancel-edit-btn" style="display:none;background:#6b7280;">Cancel</button>
-        </div>
-      </form>
-    </div>
 
-    <!-- Filters -->
-    <div class="card">
-      <h2>Recent Readings</h2>
-      <div class="row">
-        <div class="input-group">
-          <label for="date-range-start">Start Date</label>
-          <input type="date" id="date-range-start">
-        </div>
-        <div class="input-group">
-          <label for="date-range-end">End Date</label>
-          <input type="date" id="date-range-end">
-        </div>
+          <div class="row">
+            <button type="submit" id="submit-btn" class="btn">Add Vitals</button>
+            <button type="button" id="update-btn" class="btn" style="display:none;">Update</button>
+            <button type="button" id="cancel-edit-btn" class="btn" style="display:none;background:#6b7280;">Cancel</button>
+          </div>
+        </form>
       </div>
-      <div class="filter-buttons">
-        <button id="apply-filter-btn">Apply Filter</button>
-        <button id="show-all-btn">Show All Records</button>
-        <button id="show-current-btn">Show Current Month</button>
-        <button id="download-pdf-btn">Download PDF</button>
+
+      <!-- View / Filters -->
+      <div class="card">
+        <h2>Recent Readings</h2>
+        <div class="row">
+          <div class="input-group" style="flex:1 1 160px;">
+            <label for="date-range-start">Start Date</label>
+            <input type="date" id="date-range-start">
+          </div>
+          <div class="input-group" style="flex:1 1 160px;">
+            <label for="date-range-end">End Date</label>
+            <input type="date" id="date-range-end">
+          </div>
+        </div>
+        <button id="download-pdf" class="btn secondary" style="width:100%;margin:8px 0 12px 0;">Download PDF Report</button>
+        <ul id="vitals-list"></ul>
+        <p id="empty-state" class="muted" style="display:none;">No records for this selection.</p>
       </div>
-      <table id="vitals-table">
-        <thead>
-          <tr>
-            <th>Person</th>
-            <th>Systolic</th>
-            <th>Diastolic</th>
-            <th>Pulse</th>
-            <th>Oxygen</th>
-            <th>Date & Time</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
     </div>
   </div>
 
-  <script>
-    let records = JSON.parse(localStorage.getItem("vitalsRecords")) || [];
-    let editingIndex = null;
+  <!-- App Logic -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
+    import {
+      getAuth, GoogleAuthProvider, signInWithPopup,
+      onAuthStateChanged, signOut
+    } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+    import {
+      getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+      orderBy, query, onSnapshot, getDoc, Timestamp
+    } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
+    const { jsPDF } = window.jspdf;
 
-    function saveRecords() {
-      localStorage.setItem("vitalsRecords", JSON.stringify(records));
+    // --- Firebase config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyDWKz6O-5xir46vivUPBAse_vMSaXWKamU",
+      authDomain: "parents-vitals-data.firebaseapp.com",
+      projectId: "parents-vitals-data",
+      storageBucket: "parents-vitals-data.appspot.com",
+      messagingSenderId: "34332288387",
+      appId: "1:34332288387:web:ea67be6bb564e8f402c2b6"
+    };
+
+    // --- Init ---
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    // --- DOM ---
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const authDiv = document.getElementById('auth');
+    const appDiv = document.getElementById('app');
+    const pdfLoadingDiv = document.getElementById('pdf-loading');
+
+    const vitalsForm = document.getElementById('vitals-form');
+    const patientSelect = document.getElementById('patient-select');
+    const systolicInput = document.getElementById('systolic');
+    const diastolicInput = document.getElementById('diastolic');
+    const heartrateInput = document.getElementById('heartrate');
+    const oxygenInput = document.getElementById('oxygen');
+    const glucoseInput = document.getElementById('glucose');
+    const timestampInput = document.getElementById('timestamp-input');
+
+    const dateRangeStart = document.getElementById('date-range-start');
+    const dateRangeEnd = document.getElementById('date-range-end');
+
+    const vitalsList = document.getElementById('vitals-list');
+    const emptyState = document.getElementById('empty-state');
+
+    const submitBtn = document.getElementById('submit-btn');
+    const updateBtn = document.getElementById('update-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const downloadPdfButton = document.getElementById('download-pdf');
+    const logoutButton = document.getElementById('logout-button');
+    const googleLoginButton = document.getElementById('google-login-button');
+
+    // --- State ---
+    const patientNames = { Mom: 'Susan', Dad: 'Gary' };
+    let currentUserId = null;
+    let unsubscribe = null;
+    let allDocs = [];          // snapshot cache
+    let editingId = null;
+    let lastSelectedPatient = 'Mom';
+
+    // --- Helpers ---
+    function show(screen){
+      // hide all
+      loadingDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+      authDiv.style.display = 'none';
+      appDiv.style.display = 'none';
+      pdfLoadingDiv.style.display = 'none';
+      // show one
+      screen.style.display = 'flex';
     }
-
-    function renderTable(data = records) {
-      const tbody = document.querySelector("#vitals-table tbody");
-      tbody.innerHTML = "";
-      data.forEach((rec, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${rec.person}</td>
-          <td>${rec.systolic}</td>
-          <td>${rec.diastolic}</td>
-          <td>${rec.pulse}</td>
-          <td>${rec.oxygen}</td>
-          <td>${new Date(rec.timestamp).toLocaleString()}</td>
-          <td class="actions">
-            <button onclick="editRecord(${index})">Edit</button>
-            <button onclick="deleteRecord(${index})">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
-
-    function addRecord(e) {
-      e.preventDefault();
-      const person = document.getElementById("person").value;
-      const systolic = document.getElementById("systolic").value;
-      const diastolic = document.getElementById("diastolic").value;
-      const pulse = document.getElementById("pulse").value;
-      const oxygen = document.getElementById("oxygen").value;
-      const timestamp = document.getElementById("timestamp-input").value;
-
-      const record = { person, systolic, diastolic, pulse, oxygen, timestamp };
-
-      if (editingIndex === null) {
-        records.push(record);
-      } else {
-        records[editingIndex] = record;
-        editingIndex = null;
-        document.getElementById("submit-btn").style.display = "inline-block";
-        document.getElementById("update-btn").style.display = "none";
-        document.getElementById("cancel-edit-btn").style.display = "none";
-      }
-
-      saveRecords();
-      renderTable();
-      document.getElementById("vitals-form").reset();
-    }
-
-    function editRecord(index) {
-      const rec = records[index];
-      document.getElementById("person").value = rec.person;
-      document.getElementById("systolic").value = rec.systolic;
-      document.getElementById("diastolic").value = rec.diastolic;
-      document.getElementById("pulse").value = rec.pulse;
-      document.getElementById("oxygen").value = rec.oxygen;
-      document.getElementById("timestamp-input").value = rec.timestamp;
-      editingIndex = index;
-      document.getElementById("submit-btn").style.display = "none";
-      document.getElementById("update-btn").style.display = "inline-block";
-      document.getElementById("cancel-edit-btn").style.display = "inline-block";
-    }
-
-    function deleteRecord(index) {
-      records.splice(index, 1);
-      saveRecords();
-      renderTable();
-    }
-
-    document.getElementById("vitals-form").addEventListener("submit", addRecord);
-
-    document.getElementById("cancel-edit-btn").addEventListener("click", () => {
-      editingIndex = null;
-      document.getElementById("vitals-form").reset();
-      document.getElementById("submit-btn").style.display = "inline-block";
-      document.getElementById("update-btn").style.display = "none";
-      document.getElementById("cancel-edit-btn").style.display = "none";
-    });
-
-    function applyFilter() {
-      const start = document.getElementById("date-range-start").value;
-      const end = document.getElementById("date-range-end").value;
-
-      let filtered = records;
-
-      if (start) {
-        filtered = filtered.filter(r => new Date(r.timestamp) >= new Date(start));
-      }
-      if (end) {
-        const endDate = new Date(end);
-        endDate.setDate(endDate.getDate() + 1); // include entire day
-        filtered = filtered.filter(r => new Date(r.timestamp) < endDate);
-      }
-
-      renderTable(filtered);
-    }
-
-    document.getElementById("apply-filter-btn").addEventListener("click", applyFilter);
-
-    document.getElementById("show-all-btn").addEventListener("click", () => {
-      document.getElementById("date-range-start").value = "";
-      document.getElementById("date-range-end").value = "";
-      renderTable();
-    });
-
-    document.getElementById("show-current-btn").addEventListener("click", () => {
+    function setNowToTimestamp(){
       const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const isoLocal = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+      timestampInput.value = isoLocal;
+    }
+    function validateInputs(v){
+      const numOk = (n,min,max)=> n===null || (n>=min && n<=max);
+      return numOk(v.systolic,0,300)
+          && numOk(v.diastolic,0,200)
+          && numOk(v.heartrate,0,200)
+          && numOk(v.oxygen,0,100)
+          && numOk(v.glucose,0,500);
+    }
+    function inclusiveEndOfDay(d){
+      const end = new Date(d);
+      end.setHours(23,59,59,999);
+      return end;
+    }
 
-      const filtered = records.filter(r => {
-        const t = new Date(r.timestamp);
-        return t >= start && t < end;
-      });
+    function renderList(){
+      const selected = patientSelect.value;
+      lastSelectedPatient = selected;
 
-      renderTable(filtered);
+      // date filters
+      const start = dateRangeStart.value ? new Date(dateRangeStart.value) : null;
+      const end = dateRangeEnd.value ? inclusiveEndOfDay(dateRangeEnd.value) : null;
+
+      const filtered = allDocs
+        .map(({id,data})=>({id,...data}))
+        .filter(x => x.patient === selected)
+        .filter(x => {
+          const t = x.timestamp.toDate();
+          let ok = true;
+          if(start) ok = ok && t >= start;
+          if(end) ok = ok && t <= end;
+          return ok;
+        });
+
+      vitalsList.innerHTML='';
+      if(filtered.length===0){
+        emptyState.style.display='block';
+        return;
+      }
+      emptyState.style.display='none';
+
+      for(const v of filtered){
+        const li = document.createElement('li');
+
+        const left = document.createElement('div');
+        left.className='item-left';
+        left.textContent =
+          `${patientNames[v.patient]||v.patient} - ${v.timestamp.toDate().toLocaleString()}: `
+          + `BP ${v.systolic??'-'}/${v.diastolic??'-'}, `
+          + `HR ${v.heartrate??'-'}, O2 ${v.oxygen??'-'}%, `
+          + `Glucose ${v.glucose??'-'}`;
+
+        const right = document.createElement('div');
+        right.className='item-right';
+        const eBtn = document.createElement('button');
+        eBtn.className='edit-btn';
+        eBtn.textContent='Edit';
+        eBtn.onclick = async ()=>{
+          // load single doc for safety
+          const ref = doc(db,'users',currentUserId,'vitals',v.id);
+          const snap = await getDoc(ref);
+          if(!snap.exists()) return;
+          const d = snap.data();
+
+          patientSelect.value = d.patient;               // keep their selection
+          systolicInput.value = d.systolic ?? '';
+          diastolicInput.value = d.diastolic ?? '';
+          heartrateInput.value = d.heartrate ?? '';
+          oxygenInput.value = d.oxygen ?? '';
+          glucoseInput.value = d.glucose ?? '';
+          // set local ISO string for correct time in datetime-local
+          const dt = d.timestamp.toDate();
+          const isoLocal = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+          timestampInput.value = isoLocal;
+
+          submitBtn.style.display='none';
+          updateBtn.style.display='inline-block';
+          cancelEditBtn.style.display='inline-block';
+          editingId = v.id;
+        };
+        const dBtn = document.createElement('button');
+        dBtn.className='delete-btn';
+        dBtn.textContent='Delete';
+        dBtn.onclick = async ()=>{
+          if(!confirm('Delete this entry?')) return;
+          await deleteDoc(doc(db,'users',currentUserId,'vitals',v.id));
+        };
+
+        right.appendChild(eBtn);
+        right.appendChild(dBtn);
+        li.appendChild(left);
+        li.appendChild(right);
+        vitalsList.appendChild(li);
+      }
+    }
+
+    function clearFormKeepPatient(){
+      const keep = patientSelect.value;
+      vitalsForm.reset();
+      patientSelect.value = keep; // prevent bounce back to Mom
+      setNowToTimestamp();
+      submitBtn.style.display='inline-block';
+      updateBtn.style.display='none';
+      cancelEditBtn.style.display='none';
+      editingId = null;
+    }
+
+    // --- Auth flow ---
+    onAuthStateChanged(auth, user=>{
+      if(user){
+        currentUserId = user.uid;
+        // subscribe to user's vitals
+        if(unsubscribe) unsubscribe();
+        const col = collection(db,'users',currentUserId,'vitals');
+        const q = query(col, orderBy('timestamp','desc'));
+        unsubscribe = onSnapshot(q, (snap)=>{
+          allDocs = snap.docs.map(d=>({id:d.id, data:d.data()}));
+          renderList();
+        }, (err)=>{
+          errorDiv.textContent = 'Error fetching vitals: '+ err.message;
+          show(errorDiv);
+        });
+
+        // init UI
+        setNowToTimestamp();
+        show(appDiv);
+      }else{
+        currentUserId = null;
+        if(unsubscribe){ unsubscribe(); unsubscribe=null; }
+        show(authDiv);
+      }
+    }, err=>{
+      errorDiv.textContent = 'Auth init error: '+err.message;
+      show(errorDiv);
     });
 
-    document.getElementById("download-pdf-btn").addEventListener("click", () => {
-      const win = window.open("", "PDF", "width=800,height=600");
-      win.document.write("<h1>Vitals Report</h1>");
-      win.document.write(document.getElementById("vitals-table").outerHTML);
-      win.document.close();
-      win.print();
+    // initial screen while auth initializes
+    show(loadingDiv);
+
+    // --- Events ---
+    googleLoginButton?.addEventListener('click', async ()=>{
+      try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
+      catch(e){ errorDiv.textContent='Login failed: '+e.message; show(errorDiv); }
     });
 
-    renderTable();
+    logoutButton.addEventListener('click', async ()=>{
+      try{ await signOut(auth); }catch(e){ alert('Logout failed: '+e.message); }
+    });
+
+    patientSelect.addEventListener('change', renderList);
+    dateRangeStart.addEventListener('change', renderList);
+    dateRangeEnd.addEventListener('change', renderList);
+
+    vitalsForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if(!currentUserId) return;
+
+      // gather values
+      const payload = {
+        userId: currentUserId,
+        patient: patientSelect.value,
+        systolic: systolicInput.value ? parseInt(systolicInput.value,10) : null,
+        diastolic: diastolicInput.value ? parseInt(diastolicInput.value,10) : null,
+        heartrate: heartrateInput.value ? parseInt(heartrateInput.value,10) : null,
+        oxygen: oxygenInput.value ? parseInt(oxygenInput.value,10) : null,
+        glucose: glucoseInput.value ? parseInt(glucoseInput.value,10) : null,
+        timestamp: Timestamp.fromDate(new Date(timestampInput.value))
+      };
+      if(!validateInputs(payload)){
+        alert('Invalid values:\nSystolic 0–300, Diastolic 0–200, HR 0–200, O2 0–100, Glucose 0–500.');
+        return;
+      }
+
+      try{
+        submitBtn.disabled = true;
+        await addDoc(collection(db,'users',currentUserId,'vitals'), payload);
+        clearFormKeepPatient();  // keep patient; set time to now
+      }catch(e){
+        alert('Error adding vitals: '+e.message);
+      }finally{
+        submitBtn.disabled = false;
+      }
+    });
+
+    updateBtn.addEventListener('click', async ()=>{
+      if(!editingId) return;
+      const ref = doc(db,'users',currentUserId,'vitals',editingId);
+      const payload = {
+        patient: patientSelect.value,
+        systolic: systolicInput.value ? parseInt(systolicInput.value,10) : null,
+        diastolic: diastolicInput.value ? parseInt(diastolicInput.value,10) : null,
+        heartrate: heartrateInput.value ? parseInt(heartrateInput.value,10) : null,
+        oxygen: oxygenInput.value ? parseInt(oxygenInput.value,10) : null,
+        glucose: glucoseInput.value ? parseInt(glucoseInput.value,10) : null,
+        timestamp: Timestamp.fromDate(new Date(timestampInput.value))
+      };
+      if(!validateInputs(payload)){
+        alert('Invalid values.');
+        return;
+      }
+      try{
+        updateBtn.disabled = true;
+        await updateDoc(ref, payload);
+        clearFormKeepPatient();
+      }catch(e){
+        alert('Error updating vitals: '+e.message);
+      }finally{
+        updateBtn.disabled = false;
+      }
+    });
+
+    cancelEditBtn.addEventListener('click', clearFormKeepPatient);
+
+    downloadPdfButton.addEventListener('click', async ()=>{
+      pdfLoadingDiv.style.display='flex';
+      try{
+        // build filtered view using current on-screen filters
+        const selected = patientSelect.value;
+        const start = dateRangeStart.value ? new Date(dateRangeStart.value) : null;
+        const end = dateRangeEnd.value ? inclusiveEndOfDay(dateRangeEnd.value) : null;
+
+        const rows = allDocs
+          .map(({id,data})=>({id,...data}))
+          .filter(x=>x.patient===selected)
+          .filter(x=>{
+            const t = x.timestamp.toDate();
+            let ok = true;
+            if(start) ok = ok && t >= start;
+            if(end) ok = ok && t <= end;
+            return ok;
+          })
+          .map(x=>[
+            x.timestamp.toDate().toLocaleString(),
+            x.systolic ?? '-',
+            x.diastolic ?? '-',
+            x.heartrate ?? '-',
+            x.oxygen ?? '-',
+            x.glucose ?? '-'
+          ]);
+
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text(`${patientNames[selected]||selected} — Vitals Report`, 14, 18);
+        doc.setFontSize(11);
+
+        const dateDesc =
+          (dateRangeStart.value ? `From ${new Date(dateRangeStart.value).toLocaleDateString()}` : 'From beginning')
+          + '  '
+          + (dateRangeEnd.value ? `to ${new Date(dateRangeEnd.value).toLocaleDateString()}` : 'to now');
+        doc.text(dateDesc, 14, 26);
+
+        doc.autoTable({
+          head: [['Date/Time','Systolic','Diastolic','HR','O2','Glucose']],
+          body: rows,
+          startY: 32,
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: [37,99,235] }
+        });
+
+        doc.save(`${patientNames[selected]||selected}-Vitals.pdf`);
+      }catch(e){
+        alert('Error generating PDF: '+e.message);
+      }finally{
+        pdfLoadingDiv.style.display='none';
+      }
+    });
+
+    // Set default timestamp on first load (in case auth is already ready)
+    setNowToTimestamp();
   </script>
 </body>
 </html>
