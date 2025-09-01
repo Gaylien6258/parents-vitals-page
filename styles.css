@@ -47,13 +47,14 @@ body {
 }
 
 .header {
-    width: 100%;
+        width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding-bottom: 1rem;
     border-bottom: 1px solid #e5e7eb;
     margin-bottom: 2rem;
+    background: rgba(255, 255, 255, 0.7);
 }
 
 .logout-btn {
@@ -86,7 +87,7 @@ body {
 }
 
 .data-entry-card, .data-view-card {
-    background: #fff;
+    background: rgba(255, 255, 255, 0.7);
     padding: 2rem;
     border-radius: 1.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
