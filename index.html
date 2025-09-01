@@ -243,11 +243,11 @@
           && numOk(v.glucose,0,500);
     }
     function exclusiveStartOfNextDay(d) {
-  const nextDay = new Date(d);
-  nextDay.setDate(nextDay.getDate() + 1); // Add one day
-  nextDay.setHours(0, 0, 0, 0); // Set time to the very start of the day
-  return nextDay;
-    }
+  const nextDay = new Date(d + 'T00:00:00');
+  nextDay.setDate(nextDay.getDate() + 1); // Add one day
+  nextDay.setHours(0, 0, 0, 0); // Set time to the very start of the day
+  return nextDay;
+}
 
     function renderList(){
       const selected = patientSelect.value;
