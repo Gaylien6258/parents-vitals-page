@@ -234,7 +234,7 @@
       appDiv.style.display = 'none';
       pdfLoadingDiv.style.display = 'none';
       // show one
-      screen.style.display = 'flex';
+      screen.style.display = (screen === appDiv) ? 'block' : 'flex';
     }
     function setNowToTimestamp(){
       const now = new Date();
@@ -748,7 +748,7 @@
       appDiv.style.display = 'none';
       pdfLoadingDiv.style.display = 'none';
       // show one
-      screen.style.display = 'flex';
+      screen.style.display = (screen === appDiv) ? 'block' : 'flex';
     }
     function setNowToTimestamp(){
       const now = new Date();
