@@ -227,15 +227,15 @@
 
     // --- Helpers ---
     function show(screen){
-      // hide all
-      loadingDiv.style.display = 'none';
-      errorDiv.style.display = 'none';
-      authDiv.style.display = 'none';
-      appDiv.style.display = 'none';
-      pdfLoadingDiv.style.display = 'none';
-      // show one
-      screen.style.display = (screen === appDiv) ? 'block' : 'flex';
-    }
+      // hide all
+      loadingDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+      authDiv.style.display = 'none';
+      appDiv.style.display = 'none';
+      pdfLoadingDiv.style.display = 'none';
+      // show one
+      screen.style.display = (screen === appDiv) ? 'block' : 'flex';
+    }
     function setNowToTimestamp(){
       const now = new Date();
       const isoLocal = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
@@ -611,12 +611,10 @@
   </div>
 
   <div id="app" class="screen">
-    <div class="card header-card">
-      <div class="header">
-        <h1>Vitals Tracker</h1>
-      </div>
-      <button id="logout-button" class="logout-btn">Logout</button>
-    </div>
+    <div class="header">
+    <h1>Vitals Tracker</h1>
+    <button id="logout-button" class="logout-btn">Logout</button>
+  </div>
 
     <div class="container">
       <!-- Entry -->
