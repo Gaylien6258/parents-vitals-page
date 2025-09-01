@@ -242,10 +242,11 @@
           && numOk(v.oxygen,0,100)
           && numOk(v.glucose,0,500);
     }
-    function inclusiveEndOfDay(d){
-      const end = new Date(d);
-      end.setHours(23,59,59,999);
-      return end;
+    function exclusiveStartOfNextDay(d) {
+  const nextDay = new Date(d);
+  nextDay.setDate(nextDay.getDate() + 1); // Add one day
+  nextDay.setHours(0, 0, 0, 0); // Set time to the very start of the day
+  return nextDay;
     }
 
     function renderList(){
@@ -254,7 +255,7 @@
 
       // date filters
       const start = dateRangeStart.value ? new Date(dateRangeStart.value) : null;
-      const end = dateRangeEnd.value ? inclusiveEndOfDay(dateRangeEnd.value) : null;
+      const end = dateRangeEnd.value ? exclusiveStartOfNextDay(dateRangeEnd.value) : null;
 
       const filtered = allDocs
         .map(({id,data})=>({id,...data}))
@@ -263,7 +264,7 @@
           const t = x.timestamp.toDate();
           let ok = true;
           if(start) ok = ok && t >= start;
-          if(end) ok = ok && t <= end;
+          if(end) ok = ok && t < end;
           return ok;
         });
 
@@ -452,7 +453,7 @@
         // build filtered view using current on-screen filters
         const selected = patientSelect.value;
         const start = dateRangeStart.value ? new Date(dateRangeStart.value) : null;
-        const end = dateRangeEnd.value ? inclusiveEndOfDay(dateRangeEnd.value) : null;
+        const end = dateRangeEnd.value ? exclusiveStartOfNextDay(dateRangeEnd.value) : null;
 
         const rows = allDocs
           .map(({id,data})=>({id,...data}))
@@ -461,7 +462,7 @@
             const t = x.timestamp.toDate();
             let ok = true;
             if(start) ok = ok && t >= start;
-            if(end) ok = ok && t <= end;
+            if(end) ok = ok && t < end;
             return ok;
           })
           .map(x=>[
